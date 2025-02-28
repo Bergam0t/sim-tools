@@ -382,7 +382,10 @@ class ContinuousEmpirical(Distribution):
         self.upper_bounds = np.asarray(upper_bounds)
         self.cumulative_probs = self.create_cumulative_probs(freq)
 
-    def create_cumulative_probs(self, freq: npt.ArrayLike) -> npt.NDArray[float]:
+    def create_cumulative_probs(
+            self,
+            freq: npt.ArrayLike
+    ) -> npt.NDArray[float]:
         """
         Calculate cumulative relative frequency from
         frequency
