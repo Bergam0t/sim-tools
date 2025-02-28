@@ -450,8 +450,8 @@ class ReplicationsAlgorithmModelAdapter(Protocol):
 # pylint: disable=too-many-instance-attributes
 class ReplicationsAlgorithm:
     """
-    An implementation of the "Replications Algorithm" from
-    Hoad, Robinson, & Davies (2010).
+    An implementation of the "Replications Algorithm" from Hoad, Robinson, &
+    Davies (2010).
 
     Given a model's performance measure, and a user set CI half width precision
     automatically select the number of replications.
@@ -465,7 +465,7 @@ class ReplicationsAlgorithm:
     Sources:
     -------
 
-    Please cite the authors of the algorthim if you use it in your work.
+    Please cite the authors of the algorithm if you use it in your work.
 
     Hoad, Robinson, & Davies (2010). Automated selection of the number of
     replications for a discrete-event simulation. Journal of the Operational
@@ -535,6 +535,24 @@ class ReplicationsAlgorithm:
 
         self.stats = None
 
+        # Check validity of provided parameters
+        self.valid_inputs()
+
+    def valid_inputs(self):
+        """
+        Checks validity of provided parameters.
+        """
+        for p in [self.initial_replications, self.look_ahead]:
+            if not isinstance(p, int) or p < 0:
+                raise ValueError(f'{p} must be a non-negative integer.')
+
+        if self.half_width_precision <= 0:
+            raise ValueError('half_width_precision must be greater than 0.')
+
+        if self.replication_budget < self.initial_replications:
+            raise ValueError(
+                'replication_budget must be less than initial_replications.')
+
     def _klimit(self) -> int:
         """
         Return the current look ahead.
@@ -545,9 +563,15 @@ class ReplicationsAlgorithm:
 
     def select(self, model: ReplicationsAlgorithmModelAdapter) -> int:
         """
-        Run the algorithm.
-        """
+        Executes the replication algorithm, determining the necessary number
+        of replications to achieve and maintain the desired precision.
 
+        Parameters:
+        -----------
+        model (ReplicationsAlgorithmModelAdapter):
+            Simulation model.
+        """
+        # Check validity of provided model
         if not isinstance(model, ReplicationsAlgorithmModelAdapter):
             raise ValueError(ALG_INTERFACE_ERROR)
 
