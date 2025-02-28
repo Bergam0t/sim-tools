@@ -4,7 +4,11 @@
 import numpy as np
 
 
+# pylint: disable=too-few-public-methods
 class DummySimulationModel():
+    """
+    Dummy simulation model used for testing.
+    """
     def __init__(self, mean=100, std_dev=5):
         """
         Initialises the dummy model.
