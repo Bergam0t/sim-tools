@@ -2,14 +2,15 @@
 Classes and functions to support time dependent samplingm in DES models.
 """
 
+from typing import Optional, Tuple
+
 import itertools
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from typing import Optional, Tuple
 
-
+# pylint: disable=too-few-public-methods
 class NSPPThinning:
     """
     Non Stationary Poisson Process via Thinning.
@@ -245,9 +246,6 @@ def nspp_plot(
     # visualise
     fig = plt.figure(figsize=(12, 3))
     ax = fig.add_subplot()
-
-    # chart x ticks
-    x_values = np.arange(0, arrival_profile.shape[0])
 
     # plot in this case returns a 2D line plot object
     _ = ax.plot(arrival_profile["t"], interval_means, label="Mean")

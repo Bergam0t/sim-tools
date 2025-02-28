@@ -9,13 +9,14 @@ The Confidence Interval Method (tables and visualisation)
 The Replications Algorithm (Hoad et al. 2010).
 """
 
+import warnings
+from typing import Protocol, runtime_checkable, Optional
+
 import plotly.graph_objects as go
 import numpy as np
 import pandas as pd
 from scipy.stats import t
-import warnings
 
-from typing import Protocol, runtime_checkable, Optional
 
 OBSERVER_INTERFACE_ERROR = (
     "Observers of OnlineStatistics must implement "
@@ -30,12 +31,12 @@ ALG_INTERFACE_ERROR = (
 )
 
 
+# pylint: disable=too-few-public-methods
 @runtime_checkable
 class ReplicationObserver(Protocol):
     """
-    Interface for an observer of an instance of the ReplicationsAnalyser
+    Interface for an observer of an instance of the ReplicationsAnalyser.
     """
-
     def update(self, results) -> None:
         """
         Add an observation of a replication
@@ -45,7 +46,6 @@ class ReplicationObserver(Protocol):
         results: OnlineStatistic
             The current replication to observe.
         """
-        pass
 
 
 class OnlineStatistics:
@@ -126,8 +126,7 @@ class OnlineStatistics:
         """
         if self.n > 2:
             return np.sqrt(self.variance)
-        else:
-            return np.nan
+        return np.nan
 
     @property
     def std_error(self) -> float:
@@ -152,8 +151,7 @@ class OnlineStatistics:
         """
         if self.n > 2:
             return self.mean - self.half_width
-        else:
-            return np.nan
+        return np.nan
 
     @property
     def uci(self) -> float:
@@ -162,8 +160,7 @@ class OnlineStatistics:
         """
         if self.n > 2:
             return self.mean + self.half_width
-        else:
-            return np.nan
+        return np.nan
 
     @property
     def deviation(self) -> float:
@@ -173,8 +170,7 @@ class OnlineStatistics:
         """
         if self.n > 2:
             return self.half_width / self.mean
-        else:
-            return np.nan
+        return np.nan
 
     def update(self, x: float) -> None:
         """
@@ -384,13 +380,15 @@ def plotly_confidence_interval_method(
 
     # Confidence interval bands with hover info
     for col, color, dash in zip(
-        ["Lower Interval", "Upper Interval"], ["lightblue", "lightblue"], ["dot", "dot"]
+        ["Lower Interval", "Upper Interval"],
+        ["lightblue", "lightblue"],
+        ["dot", "dot"]
     ):
         fig.add_trace(
             go.Scatter(
                 x=conf_ints.index,
                 y=conf_ints[col],
-                line=dict(color=color, dash=dash),
+                line={"color": color, "dash": dash},
                 name=col,
                 text=[f"Deviation: {d}%" for d in deviation_pct],
                 hoverinfo="x+y+name+text",
@@ -402,7 +400,7 @@ def plotly_confidence_interval_method(
         go.Scatter(
             x=conf_ints.index,
             y=conf_ints["Cumulative Mean"],
-            line=dict(color="blue", width=2),
+            line={"color": "blue", "width": 2},
             name="Cumulative Mean",
             hoverinfo="x+y+name",
         )
@@ -416,7 +414,7 @@ def plotly_confidence_interval_method(
         y0=0,
         y1=1,
         yref="paper",
-        line=dict(color="red", dash="dash"),
+        line={"color": "red", "dash": "dash"},
     )
 
     # Configure layout
@@ -444,9 +442,9 @@ class ReplicationsAlgorithmModelAdapter(Protocol):
         """
         Perform a unique replication of the model. Return a performance measure
         """
-        pass
 
 
+# pylint: disable=too-many-instance-attributes
 class ReplicationsAlgorithm:
     """
     An implementation of the "Replications Algorithm" from
@@ -472,7 +470,7 @@ class ReplicationsAlgorithm:
 
     Please also cite sim-tools!
     """
-
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
     def __init__(
         self,
         alpha: Optional[float] = 0.05,
@@ -532,6 +530,8 @@ class ReplicationsAlgorithm:
 
         self.observer = observer
 
+        self.stats = None
+
     def _klimit(self) -> int:
         """
         Return the current look ahead.
@@ -541,6 +541,9 @@ class ReplicationsAlgorithm:
         return int((self.look_ahead / 100) * max(self.n, 100))
 
     def select(self, model: ReplicationsAlgorithmModelAdapter) -> int:
+        """
+        Run the algorithm.
+        """
 
         if not isinstance(model, ReplicationsAlgorithmModelAdapter):
             raise ValueError(ALG_INTERFACE_ERROR)
