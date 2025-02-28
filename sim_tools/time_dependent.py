@@ -115,22 +115,22 @@ def nspp_simulation(
 
     This uses the sim-tools NSPPThinning class.
 
-    Useful for validating the the NSPP has been set up correctly and is producing the
-    desired profile for the simulation model.
+    Useful for validating the the NSPP has been set up correctly and is
+    producing the desired profile for the simulation model.
 
-    On each replication the function counts the number of arrivals during the intervals
-    from the arrival profile.  Returns a data frame with reps (rows) and interval arrivals
-    (columns)
+    On each replication the function counts the number of arrivals during the
+    intervals from the arrival profile.  Returns a data frame with reps (rows)
+    and interval arrivals (columns).
 
     Parameters:
     -----------
     arrival_profile: pandas.DataFrame
-        The arrival profile is a pandas data frame containing 't', 'arrival_rate' and
-        'mean_iat' columns.
+        The arrival profile is a pandas data frame containing 't',
+        'arrival_rate' and 'mean_iat' columns.
 
     run_length: float, optional (default=None)
-        How long should the simulation be run. If none then uses the last value in 't'
-        + the interval (assumes equal width intervals)
+        How long should the simulation be run. If none then uses the last
+        value in 't' + the interval (assumes equal width intervals)
 
     n_reps: int, optional (default=1000)
         The number of replications to run.
@@ -159,7 +159,8 @@ def nspp_simulation(
         # if no run length has been set....
         if run_length is None:
             run_length = (
-                arrival_profile["t"].iloc[len(arrival_profile) - 1] + nspp_rng.interval
+                arrival_profile["t"].iloc[len(arrival_profile) - 1] +
+                nspp_rng.interval
             )
 
         # list - each item is an interval in the arrival profile
@@ -174,7 +175,8 @@ def nspp_simulation(
                 # data collection: add one to count for hour of the day
                 # note list NSPPThinning this assume equal intervals
                 interval_of_day = (
-                    int(simulation_time // nspp_rng.interval) % len(arrival_profile)
+                    int(simulation_time // nspp_rng.interval) %
+                    len(arrival_profile)
                 )
                 interval_samples[interval_of_day] += 1
 
@@ -194,23 +196,24 @@ def nspp_plot(
     run_length: Optional[float] = None,
     n_reps: Optional[int] = 1000,
 ) -> Tuple[plt.Figure, plt.Axes]:
-    """Generate a matplotlib chart to visualise a non-stationary poisson process
+    """
+    Generate a matplotlib chart to visualise a non-stationary poisson process
     for the set arrival profile.
 
     This uses the sim-tools NSPPThinning class.
 
-    Useful for validating the the NSPP has been set up correctly and is producing the
-    desired profile for the simulation model.
+    Useful for validating the the NSPP has been set up correctly and is
+    producing the desired profile for the simulation model.
 
     Parameters:
     ----------
     arrival_profile: pandas.DataFrame
-        The arrival profile is a pandas data frame containing 't', 'arrival_rate' and
-        'mean_iat' columns.
+        The arrival profile is a pandas data frame containing 't',
+        'arrival_rate' and 'mean_iat' columns.
 
     run_length: float, optional (default=None)
-        How long should the simulation be run. If none then uses the last value in 't'
-        + the interval (assumes equal width intervals)
+        How long should the simulation be run. If none then uses the last value
+        in 't' + the interval (assumes equal width intervals)
 
     n_reps: int, optional (default=1000)
         The number of replications to run.
@@ -221,7 +224,8 @@ def nspp_plot(
     # is it a dataframe
     if not isinstance(arrival_profile, pd.DataFrame):
         raise ValueError(
-            f"arrival_profile expected pd.DataFrame " f"got {type(arrival_profile)}"
+            f"arrival_profile expected pd.DataFrame " +
+            f"got {type(arrival_profile)}"
         )
 
     # all columns are present
@@ -249,7 +253,8 @@ def nspp_plot(
 
     # plot in this case returns a 2D line plot object
     _ = ax.plot(arrival_profile["t"], interval_means, label="Mean")
-    _ = ax.fill_between(arrival_profile["t"], lower, upper, alpha=0.2, label="+-1SD")
+    _ = ax.fill_between(
+        arrival_profile["t"], lower, upper, alpha=0.2, label="+-1SD")
 
     # chart appearance
     _ = ax.legend(loc="best", ncol=3)

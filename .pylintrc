@@ -1,3 +1,6 @@
 [MESSAGES CONTROL]
 disable=
     protected-access
+
+[FORMAT]
+max-line-length=79

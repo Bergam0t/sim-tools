@@ -78,8 +78,9 @@ class OnlineStatistics:
 
         observer: ReplicationObserver, optional (default=None)
             A user may optionally track the updates to the statistics using a
-            ReplicationObserver (e.g. ReplicationTabuliser). This allows further
-            tabular or visual analysis or saving results to file if required.
+            ReplicationObserver (e.g. ReplicationTabuliser). This allows
+            further tabular or visual analysis or saving results to file if
+            required.
 
         """
 
@@ -323,7 +324,8 @@ def confidence_interval_method(
     # welford's method to track cumulative mean and construct CIs at each rep
     # track the process and construct data table using ReplicationTabuliser
     observer = ReplicationTabulizer()
-    stats = OnlineStatistics(alpha=alpha, data=replications[:2], observer=observer)
+    stats = OnlineStatistics(
+        alpha=alpha, data=replications[:2], observer=observer)
 
     # iteratively update.
     for i in range(2, len(replications)):
@@ -331,7 +333,8 @@ def confidence_interval_method(
 
     results = observer.summary_table()
 
-    # get the smallest no. of reps where deviation is less than precision target
+    # get the smallest no. of reps where deviation is less than precision
+    # target
     try:
         n_reps = (
             results.iloc[min_rep:]
@@ -551,7 +554,8 @@ class ReplicationsAlgorithm:
         converged = False
 
         # run initial replications of model
-        x_i = [model.single_run(rep) for rep in range(self.initial_replications)]
+        x_i = [
+            model.single_run(rep) for rep in range(self.initial_replications)]
 
         # initialise running mean and std dev
         self.stats = OnlineStatistics(

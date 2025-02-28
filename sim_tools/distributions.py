@@ -121,7 +121,12 @@ class Lognormal(Distribution):
     Encapsulates a lognormal distirbution
     """
 
-    def __init__(self, mean: float, stdev: float, random_seed: Optional[int] = None):
+    def __init__(
+            self,
+            mean: float,
+            stdev: float,
+            random_seed: Optional[int] = None
+    ):
         """
         Params:
         -------
@@ -279,7 +284,11 @@ class Triangular(Distribution):
     """
 
     def __init__(
-        self, low: float, mode: float, high: float, random_seed: Optional[int] = None
+        self,
+        low: float,
+        mode: float,
+        high: float,
+        random_seed: Optional[int] = None
     ) -> float | np.ndarray:
         super().__init__(random_seed)
         self.low = low
@@ -657,7 +666,10 @@ class Gamma(Distribution):
         return self.alpha * (self.beta**2)
 
     @staticmethod
-    def params_from_mean_and_var(mean: float, var: float) -> Tuple[float, float]:
+    def params_from_mean_and_var(
+        mean: float,
+        var: float
+    ) -> Tuple[float, float]:
         """
         Helper static method to get alpha and beta parameters
         from a mean and variance.
@@ -757,7 +769,8 @@ class Beta(Distribution):
             numpy array returned.
         """
         return self.min + (
-            (self.max - self.min) * self.rng.beta(self.alpha1, self.alpha2, size)
+            (self.max - self.min) *
+            self.rng.beta(self.alpha1, self.alpha2, size)
         )
 
 
@@ -796,7 +809,8 @@ class Discrete(Distribution):
             sample is created.
         """
         if len(values) != len(freq):
-            raise ValueError("values and freq arguments must be of equal length")
+            raise ValueError(
+                "values and freq arguments must be of equal length")
 
         super().__init__(random_seed)
         self.values = np.asarray(values)
@@ -878,7 +892,11 @@ class RawEmpirical(Distribution):
     are representative of the real world system.
     """
 
-    def __init__(self, values: npt.ArrayLike, random_seed: Optional[int] = None):
+    def __init__(
+            self,
+            values: npt.ArrayLike,
+            random_seed: Optional[int] = None
+    ):
         """
         RawEmpirical
 
@@ -938,7 +956,12 @@ class PearsonV(Distribution):
 
     """
 
-    def __init__(self, alpha: float, beta: float, random_seed: Optional[int] = None):
+    def __init__(
+            self,
+            alpha: float,
+            beta: float,
+            random_seed: Optional[int] = None
+    ):
         """
         PearsonV
 
@@ -979,7 +1002,8 @@ class PearsonV(Distribution):
         If alpha <= 2.0 raises a ValueError
         """
         if self.alpha > 2.0:
-            return (self.beta**2) / (((self.alpha - 1) ** 2) * (self.alpha - 2))
+            return (
+                self.beta**2) / (((self.alpha - 1) ** 2) * (self.alpha - 2))
         msg = "Cannot directly compute var when alpha <= 2.0"
         raise ValueError(msg)
 
