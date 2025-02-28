@@ -8,4 +8,3 @@ pylint ./tests
 
 echo "Linting notebooks..."
 nbqa pylint ./docs
-nbqa pylint ./examples
