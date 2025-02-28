@@ -94,9 +94,15 @@ class OnlineStatistics:
         if observer is not None:
             self.register_observer(observer)
 
-        if isinstance(data, np.ndarray):
-            for x in data:
-                self.update(x)
+        if data is not None:
+            if isinstance(data, np.ndarray):
+                for x in data:
+                    self.update(x)
+            # Raise an error if in different format - else will invisibly
+            # proceed and won't notice it hasn't done this
+            else:
+                raise ValueError(
+                    f"data must be np.ndarray but is type {type(data)}")
 
     def register_observer(self, observer: ReplicationObserver) -> None:
         """
