@@ -331,7 +331,7 @@ def confidence_interval_method(
     # track the process and construct data table using ReplicationTabuliser
     observer = ReplicationTabulizer()
     stats = OnlineStatistics(
-        alpha=alpha, data=replications[:2], observer=observer)
+        alpha=alpha, data=np.array(replications[:2]), observer=observer)
 
     # iteratively update.
     for i in range(2, len(replications)):
