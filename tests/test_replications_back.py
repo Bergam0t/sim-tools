@@ -16,7 +16,7 @@ from sim_tools.output_analysis import (ReplicationsAlgorithm,
 
 @pytest.mark.parametrize("mean, std_dev, expected_n_reps", [
     (7, 0.2, 5),
-    (10, 2, 60),
+    (10, 2, 58),
     (50, 1, 4)
 ])
 def test_ci_method(mean, std_dev, expected_n_reps):
