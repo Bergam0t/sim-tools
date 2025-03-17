@@ -1,6 +1,6 @@
 """
 
-Fixed budget alpirhtms
+Fixed budget algorithms
 
 1. OCBA - optimal computing budget allocation
 2. OCBA-m - optimal computering budget allocation top m.
@@ -8,10 +8,10 @@ Fixed budget alpirhtms
 """
 
 import numpy as np
-import warnings
 
 
-class OCBAM(object):
+# pylint: disable=too-many-instance-attributes
+class OCBAM():
     """
     Optimal Computer Budget Allocation Top M (OCBA-m)
 
@@ -26,7 +26,7 @@ class OCBAM(object):
 
 
     """
-
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
     def __init__(self, model, n_designs, budget, delta, n_0=5, m=2, obj="min"):
         """
         Constructor method for Optimal Budget Computer Allocation Top M
@@ -43,15 +43,16 @@ class OCBAM(object):
         total number of replications available to allocate between systems
 
         delta - int, incremental budget to allocate.  Recommendation is
-        > 5 and smaller than 10 percent of budget.  When simulation is expensive
-        then this number could be set to 1.
+        > 5 and smaller than 10 percent of budget.  When simulation is
+        expensive then this number could be set to 1.
 
-        n_0 - int, the total number of initial replications.  Minimum allowed is 5
-        (default=5)
+        n_0 - int, the total number of initial replications.  Minimum allowed
+        is 5 (default=5)
 
         m - int, the best m designs
 
-        obj - str, 'min' if minimisation; 'max' if maximisation.  (default='min')
+        obj - str, 'min' if minimisation; 'max' if maximisation.
+        (default='min')
 
         """
         model.register_observer(self)
@@ -81,7 +82,8 @@ class OCBAM(object):
             self._min = False
 
     def __str__(self):
-        return f"OCBA(n_designs={self._k}, m={self._m}, budget={self._T}, delta={self._delta}, n_0={self._n_0}, obj={self._obj})"
+        return (f"OCBA(n_designs={self._k}, m={self._m}, budget={self._T}, " +
+                f"delta={self._delta}, n_0={self._n_0}, obj={self._obj})")
 
     def solve(self):
         """
@@ -89,7 +91,9 @@ class OCBAM(object):
         include negatation! What am I doing wrong!
         """
 
-        new_allocations = np.full(shape=self._k, fill_value=self._n_0, dtype=np.int16)
+        new_allocations = np.full(shape=self._k,
+                                  fill_value=self._n_0,
+                                  dtype=np.int16)
 
         while self._allocations.sum() < self._T:
             # simulate systems using new allocation of budget
@@ -104,9 +108,11 @@ class OCBAM(object):
             # deltas *= self._negate
 
             # allocate
-            new_allocations = np.full(shape=self._k, fill_value=0, dtype=np.int16)
+            new_allocations = np.full(shape=self._k,
+                                      fill_value=0,
+                                      dtype=np.int16)
 
-            for i in range(self._delta):
+            for _ in range(self._delta):
                 values = np.divide(
                     self._allocations + new_allocations,
                     np.square(np.divide(self._ses, deltas)),
@@ -124,7 +130,7 @@ class OCBAM(object):
         For each design run n_0 initial replications
         """
         for design in range(self._k):
-            for replication in range(new_allocations[design]):
+            for _ in range(new_allocations[design]):
                 self._env.simulate(design)
 
     def _parameter_c(self, k, m):
@@ -133,10 +139,11 @@ class OCBAM(object):
         s_means = self._means[order]
 
         return (
-            (s_ses[k - m + 1] * s_means[k - m]) + (s_ses[k - m] * s_means[k - m + 1])
+            (s_ses[k - m + 1] * s_means[k - m]) +
+            (s_ses[k - m] * s_means[k - m + 1])
         ) / (s_ses[k - m] + s_ses[k - m + 1])
 
-    def feedback(self, *args, **kwargs):
+    def feedback(self, *args):
         """
         Feedback from the environment
         Recieves a reward and updates understanding
@@ -148,8 +155,6 @@ class OCBAM(object):
                  0  sender object
                  1. arm index to update
                  2. observation
-
-        *kwargs -- dict of keyword arguments
 
         """
         design_index = args[1]
@@ -180,14 +185,15 @@ class OCBAM(object):
                 observation - abs(new_mean)
             )
             self._vars[design_index] = self._sq[design_index] / (n - 1)
-            self._ses[design_index] = np.sqrt(self._vars[design_index]) / np.sqrt(n)
+            self._ses[design_index] = (
+                np.sqrt(self._vars[design_index]) / np.sqrt(n))
 
         self._means[design_index] = new_mean
 
 
 def get_ranks(array):
     """
-    Returns a numpy array containing ranks of numbers within a input numpy array
+    Returns a numpy array containing ranks of numbers within a input array.
     e.g. [3, 2, 1] returns [2, 1, 0]
     e.g. [3, 2, 1, 4] return [2, 1, 0, 3]
 
@@ -206,7 +212,7 @@ def get_ranks(array):
     return ranks
 
 
-class OCBA(object):
+class OCBA():
     """
     Optimal Computer Budget Allocation (OCBA)
 
@@ -225,7 +231,7 @@ class OCBA(object):
     Page 215 - for example C code.
 
     """
-
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
     def __init__(self, model, n_designs, budget, delta, n_0=5, obj="min"):
         """
         Constructor method for Optimal Budget Computer Allocation
@@ -242,20 +248,22 @@ class OCBA(object):
         total number of replications available to allocate between systems
 
         delta - int, incremental budget to allocate.  Recommendation is
-        > 5 and smaller than 10 percent of budget.  When simulation is expensive
-        then this number could be set to 1.
+        > 5 and smaller than 10 percent of budget.  When simulation is
+        expensive then this number could be set to 1.
 
-        n_0 - int, the total number of initial replications.  Minimum allowed is 5
-        (default=5)
+        n_0 - int, the total number of initial replications.  Minimum allowed
+        is 5 (default=5)
 
-        obj - str, 'min' if minimisation; 'max' if maximisation.  (default='min')
+        obj - str, 'min' if minimisation; 'max' if maximisation.
+        (default='min')
 
         """
         if n_0 < 5:
             raise ValueError("n_0 must be >= 5")
 
         if (budget - (n_designs * n_0)) % delta != 0:
-            raise ValueError("(budget - (n_designs * n_0)) must be multiple of delta")
+            raise ValueError(
+                "(budget - (n_designs * n_0)) must be multiple of delta")
 
         types = ["min", "max"]
         if obj not in types:
@@ -284,11 +292,15 @@ class OCBA(object):
             self._negate = -1.0
 
     def __str__(self):
-        return f"OCBA(n_designs={self._k}, budget={self._T}, delta={self._delta}, n_0={self._n_0}, obj={self._obj})"
+        return (f"OCBA(n_designs={self._k}, budget={self._T}, " +
+                f"delta={self._delta}, n_0={self._n_0}, obj={self._obj})")
 
     def reset(self):
-        self._total_reward = 0
-        self._current_round = 0
+        """
+        Reset values
+        """
+        # self._total_reward = 0
+        # self._current_round = 0
         self._allocations = np.zeros(self._k, np.int32)
         self._means = np.zeros(self._k, np.float64)
         self._vars = np.zeros(self._k, np.float64)
@@ -307,7 +319,7 @@ class OCBA(object):
             new_allocations = self._allocate()
 
             for design in range(self._k):
-                for replication in range(new_allocations[design]):
+                for _ in range(new_allocations[design]):
                     self._env.simulate(design)
 
         best = np.argmin(self._means)
@@ -318,7 +330,7 @@ class OCBA(object):
         For each design run n_0 initial replications
         """
         for design in range(self._k):
-            for replication in range(self._n_0):
+            for _ in range(self._n_0):
                 self._env.simulate(design)
 
     def _allocate(self):
@@ -334,15 +346,17 @@ class OCBA(object):
         budget_to_allocate = self._allocations.sum() + self._delta
 
         # get indicies of best and second best designs so far
-        # note treated as minimisation problem.  Means are negated if maximisation
+        # note treated as minimisation problem.
+        # Means are negated if maximisation
         ranks = get_ranks(self._means)
         best_index, s_best_index = np.argpartition(ranks, 2)[:2]
 
         self._ratios[s_best_index] = 1.0
 
         # Part 1: Ratio N_i / N_s
-        # all 'select' does is exclude best and second best from arraywise calcs
-        select = [i for i in range(self._k) if i not in [best_index, s_best_index]]
+        # 'select' just excludes best and second best from arraywise calcs
+        select = [
+            i for i in range(self._k) if i not in [best_index, s_best_index]]
 
         temp = (self._means[best_index] - self._means[s_best_index]) / (
             self._means[best_index] - self._means[select]
@@ -369,9 +383,8 @@ class OCBA(object):
 
             ratio_s = (more_runs * self._ratios).sum()
 
-            additional_runs[more_runs] = (budget_to_allocate / ratio_s) * self._ratios[
-                more_runs
-            ]
+            additional_runs[more_runs] = (
+                budget_to_allocate / ratio_s) * self._ratios[more_runs]
 
             # additional_runs = additional_runs.astype(int)
             additional_runs = np.around(additional_runs).astype(int)
@@ -379,7 +392,8 @@ class OCBA(object):
             mask = additional_runs < self._allocations
             additional_runs[mask] = self._allocations[mask]
 
-            # disable designs where new allocation is less than has already been run.
+            # disable designs where new allocation is less than has already
+            # been run.
             more_runs[mask] = 0
 
             if mask.sum() > 0:
@@ -396,7 +410,7 @@ class OCBA(object):
 
         return additional_runs - self._allocations
 
-    def feedback(self, *args, **kwargs):
+    def feedback(self, *args):
         """
         Feedback from the environment
         Recieves a reward and updates understanding
@@ -408,9 +422,6 @@ class OCBA(object):
                  0  sender object
                  1. arm index to update
                  2. observation
-
-        *kwargs -- dict of keyword arguments
-
         """
         design_index = args[1]
         observation = args[2]

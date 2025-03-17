@@ -1,23 +1,23 @@
+# pylint: disable=too-many-lines
 """
-Convenient encapsulation of distributions 
-and sampling from distributions not directly 
-available in scipy or numpy. 
+Convenient encapsulation of distributions  and sampling from distributions not
+directly available in scipy or numpy. 
 
 Useful for simulation.
 
 Each distribution has its own random number stream
 that can be set by a seed.
-
 """
 
 from abc import ABC, abstractmethod
 import math
-import numpy as np
-
 from typing import Optional, Tuple
+
+import numpy as np
 import numpy.typing as npt
 
 
+# pylint: disable=too-few-public-methods
 class Distribution(ABC):
     """
     Distribution abstract class
@@ -42,9 +42,9 @@ class Distribution(ABC):
         -------
         np.ndarray or scalar
         """
-        pass
 
 
+# pylint: disable=too-few-public-methods
 class Exponential(Distribution):
     """
     Convenience class for the exponential distribution.
@@ -80,6 +80,7 @@ class Exponential(Distribution):
         return self.rng.exponential(self.mean, size=size)
 
 
+# pylint: disable=too-few-public-methods
 class Bernoulli(Distribution):
     """
     Convenience class for the Bernoulli distribution.
@@ -120,7 +121,12 @@ class Lognormal(Distribution):
     Encapsulates a lognormal distirbution
     """
 
-    def __init__(self, mean: float, stdev: float, random_seed: Optional[int] = None):
+    def __init__(
+            self,
+            mean: float,
+            stdev: float,
+            random_seed: Optional[int] = None
+    ):
         """
         Params:
         -------
@@ -184,19 +190,19 @@ class Normal(Distribution):
     ):
         '''
         Constructor
-        
+
         Params:
         ------
         mean: float
             The mean of the normal distribution
-            
+
         sigma: float
             The stdev of the normal distribution
 
         minimum: float
             Truncate the normal distribution to a minimum 
             value.
-        
+
         random_seed: int, optional (default=None)
             A random seed to reproduce samples.  If set to none then a unique
             sample is created.
@@ -205,11 +211,11 @@ class Normal(Distribution):
         self.mean = mean
         self.sigma = sigma
         self.minimum = minimum
-        
+
     def sample(self, size: Optional[int] = None) -> float | np.ndarray:
         '''
         Generate a sample from the normal distribution
-        
+
         Params:
         -------
         size: int, optional (default=None)
@@ -220,15 +226,14 @@ class Normal(Distribution):
 
         if self.minimum is None:
             return samples
-        elif size is None:
+
+        if size is None:
             return max(self.minimum, samples)
-        else:
-            # index of samples with negative value
-            neg_idx = np.where(samples < 0)[0]
-            samples[neg_idx] = self.minimum
-            return samples
 
-
+        # index of samples with negative value
+        neg_idx = np.where(samples < 0)[0]
+        samples[neg_idx] = self.minimum
+        return samples
 
 
 class Uniform(Distribution):
@@ -279,7 +284,11 @@ class Triangular(Distribution):
     """
 
     def __init__(
-        self, low: float, mode: float, high: float, random_seed: Optional[int] = None
+        self,
+        low: float,
+        mode: float,
+        high: float,
+        random_seed: Optional[int] = None
     ) -> float | np.ndarray:
         super().__init__(random_seed)
         self.low = low
@@ -311,8 +320,7 @@ class FixedDistribution(Distribution):
         """
         if size is not None:
             return np.full(size, self.value)
-        else:
-            return self.value
+        return self.value
 
 
 class CombinationDistribution(Distribution):
@@ -383,7 +391,10 @@ class ContinuousEmpirical(Distribution):
         self.upper_bounds = np.asarray(upper_bounds)
         self.cumulative_probs = self.create_cumulative_probs(freq)
 
-    def create_cumulative_probs(self, freq: npt.ArrayLike) -> npt.NDArray[float]:
+    def create_cumulative_probs(
+            self,
+            freq: npt.ArrayLike
+    ) -> npt.NDArray[float]:
         """
         Calculate cumulative relative frequency from
         frequency
@@ -416,29 +427,30 @@ class ContinuousEmpirical(Distribution):
             size = 1
 
         samples = []
-        for i in range(size):
-            # Sample a value U from the uniform(0, 1) distribution
-            U = self.rng.random()
+        for _ in range(size):
+            # Sample a value u from the uniform(0, 1) distribution
+            u = self.rng.random()
 
             # Obtain lower and upper bounds of a sample from the
             # discrete empirical distribution
-            idx = np.searchsorted(self.cumulative_probs, U)
+            idx = np.searchsorted(self.cumulative_probs, u)
             lb, ub = self.lower_bounds[idx], self.upper_bounds[idx]
 
-            # Use linear interpolation of U between
+            # Use linear interpolation of u between
             # the lower and upper bound to obtain a continuous value
-            continuous_value = lb + (ub - lb) * (U - self.cumulative_probs[idx - 1]) / (
-                self.cumulative_probs[idx] - self.cumulative_probs[idx - 1]
+            continuous_value = (
+                lb + (ub - lb) * (u - self.cumulative_probs[idx - 1]) / (
+                    self.cumulative_probs[idx] - self.cumulative_probs[idx - 1]
+                )
             )
 
             samples.append(continuous_value)
 
         if size == 1:
-            # .item() ensure returned as python 'float' 
+            # .item() ensure returned as python 'float'
             # as opposed to np.float64
             return samples[0].item()
-        else:
-            return np.asarray(samples)
+        return np.asarray(samples)
 
 
 class Erlang(Distribution):
@@ -519,8 +531,9 @@ class Weibull(Distribution):
     """
     Weibull distribution
 
-    The Weibull takes shape (alpha) and scale (beta) parameters.  Both shape and scale
-    should be > 0. The higher the scale parameters the more variance in the samples.
+    The Weibull takes shape (alpha) and scale (beta) parameters.  Both shape
+    and scale should be > 0. The higher the scale parameters the more variance
+     in the samples.
 
     This implementation also includes a third parameter "location"
     (default = 0) to shift the distribution if a lower bound is needed.
@@ -653,7 +666,10 @@ class Gamma(Distribution):
         return self.alpha * (self.beta**2)
 
     @staticmethod
-    def params_from_mean_and_var(mean: float, var: float) -> Tuple[float, float]:
+    def params_from_mean_and_var(
+        mean: float,
+        var: float
+    ) -> Tuple[float, float]:
         """
         Helper static method to get alpha and beta parameters
         from a mean and variance.
@@ -706,7 +722,7 @@ class Beta(Distribution):
     2. Distribution of a random proportion
     3. Time to complete a task.
     """
-
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
     def __init__(
         self,
         alpha1: float,
@@ -753,7 +769,8 @@ class Beta(Distribution):
             numpy array returned.
         """
         return self.min + (
-            (self.max - self.min) * self.rng.beta(self.alpha1, self.alpha2, size)
+            (self.max - self.min) *
+            self.rng.beta(self.alpha1, self.alpha2, size)
         )
 
 
@@ -792,7 +809,8 @@ class Discrete(Distribution):
             sample is created.
         """
         if len(values) != len(freq):
-            raise ValueError("values and freq arguments must be of equal length")
+            raise ValueError(
+                "values and freq arguments must be of equal length")
 
         super().__init__(random_seed)
         self.values = np.asarray(values)
@@ -809,13 +827,11 @@ class Discrete(Distribution):
             Number of samples to return. If integer then
             numpy array returned.
         """
-        sample =  self.rng.choice(self.values, p=self.probabilities, size=size)
+        sample = self.rng.choice(self.values, p=self.probabilities, size=size)
 
         if size is None:
             return sample.item()
-        else:
-            return sample
-
+        return sample
 
 
 class TruncatedDistribution(Distribution):
@@ -860,9 +876,8 @@ class TruncatedDistribution(Distribution):
             samples[samples < self.lower_bound] = self.lower_bound
             return samples
 
-        else:
-            sample = self.dist.sample()
-            return max(self.lower_bound, sample)
+        sample = self.dist.sample()
+        return max(self.lower_bound, sample)
 
 
 class RawEmpirical(Distribution):
@@ -877,7 +892,11 @@ class RawEmpirical(Distribution):
     are representative of the real world system.
     """
 
-    def __init__(self, values: npt.ArrayLike, random_seed: Optional[int] = None):
+    def __init__(
+            self,
+            values: npt.ArrayLike,
+            random_seed: Optional[int] = None
+    ):
         """
         RawEmpirical
 
@@ -937,7 +956,12 @@ class PearsonV(Distribution):
 
     """
 
-    def __init__(self, alpha: float, beta: float, random_seed: Optional[int] = None):
+    def __init__(
+            self,
+            alpha: float,
+            beta: float,
+            random_seed: Optional[int] = None
+    ):
         """
         PearsonV
 
@@ -968,9 +992,8 @@ class PearsonV(Distribution):
         """
         if self.alpha > 1.0:
             return self.beta / (self.alpha - 1)
-        else:
-            msg = "Cannot directly compute mean when alpha <= 1.0"
-            raise ValueError(msg)
+        msg = "Cannot directly compute mean when alpha <= 1.0"
+        raise ValueError(msg)
 
     def var(self) -> float:
         """
@@ -979,10 +1002,10 @@ class PearsonV(Distribution):
         If alpha <= 2.0 raises a ValueError
         """
         if self.alpha > 2.0:
-            return (self.beta**2) / (((self.alpha - 1) ** 2) * (self.alpha - 2))
-        else:
-            msg = "Cannot directly compute var when alpha <= 2.0"
-            raise ValueError(msg)
+            return (
+                self.beta**2) / (((self.alpha - 1) ** 2) * (self.alpha - 2))
+        msg = "Cannot directly compute var when alpha <= 2.0"
+        raise ValueError(msg)
 
     def sample(self, size: Optional[int] = None) -> float | np.ndarray:
         """
@@ -1061,10 +1084,12 @@ class PearsonVI(Distribution):
         self.beta = beta
 
     def mean(self) -> float:
+        """
+        Compute the mean.
+        """
         if self.alpha2 > 1.0:
             return (self.beta * self.alpha1) / (self.alpha2 - 1)
-        else:
-            raise ValueError("Cannot compute mean when alpha2 <= 1.0")
+        raise ValueError("Cannot compute mean when alpha2 <= 1.0")
 
     def var(self) -> float:
         """
@@ -1076,9 +1101,8 @@ class PearsonVI(Distribution):
             return (
                 (self.beta**2) * self.alpha1 * (self.alpha1 + self.alpha2 - 1)
             ) / (((self.alpha2 - 1) ** 2) * (self.alpha2 - 2))
-        else:
-            msg = "Cannot directly compute var when alpha2 <= 2.0"
-            raise ValueError(msg)
+        msg = "Cannot directly compute var when alpha2 <= 2.0"
+        raise ValueError(msg)
 
     def sample(self, size: Optional[int] = None) -> float | np.ndarray:
         """
@@ -1091,8 +1115,8 @@ class PearsonVI(Distribution):
             numpy array returned.
         """
         # Pearson6(a1,a2,b)=b∗X/(1−X), where X=Beta(a1,a2,1)
-        X = self.rng.beta(self.alpha1, self.alpha2, size)
-        return self.beta * X / (1 - X)
+        x = self.rng.beta(self.alpha1, self.alpha2, size)
+        return self.beta * x / (1 - x)
 
 
 class ErlangK(Distribution):

@@ -1,13 +1,16 @@
 """
-basic tests for time dependent module
+Basic tests for time-dependent module
 """
+
+import pytest
 
 import sim_tools.time_dependent as td
 from sim_tools.datasets import load_banks_et_al_nspp
-import pytest
+
 
 SEED_1 = 42
 SEED_2 = 101
+
 
 @pytest.mark.parametrize(
     "simulation_time",
@@ -21,6 +24,10 @@ SEED_2 = 101
     ],
 )
 def test_sample_from_nsppthinning(simulation_time):
+    """
+    Check that the NSPPThinning sample method returns a float when called with
+    different simulation times.
+    """
     data = load_banks_et_al_nspp()
     d = td.NSPPThinning(data, SEED_1, SEED_2)
-    assert type(d.sample(simulation_time)) == float
+    assert isinstance(d.sample(simulation_time), float)
