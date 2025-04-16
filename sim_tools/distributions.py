@@ -61,7 +61,16 @@ import numpy as np
 from numpy.typing import NDArray, ArrayLike
 from numpy.random import SeedSequence
 
-from typing import Protocol, Optional, Union, Tuple, Any, runtime_checkable
+from typing import (
+    Protocol,
+    Optional,
+    Union,
+    Tuple,
+    Any,
+    List,
+    Dict,
+    runtime_checkable,
+)
 
 
 # pylint: disable=too-few-public-methods
@@ -105,7 +114,259 @@ class Distribution(Protocol):
         ...
 
 
+def spawn_seeds(n_streams: int, main_seed: Optional[int] = None):
+    """
+    Generate multiple statistically independent random seeds.
+
+    This function creates a set of SeedSequence objects that are guaranteed
+    to produce independent streams of random numbers. This is crucial for
+    ensuring that multiple random number generators don't produce correlated
+    outputs, which could bias simulation results.
+
+    Parameters
+    ----------
+    n_streams : int
+        The number of independent seed sequences to generate.
+        Must be a positive integer.
+
+    main_seed : Optional[int], default=None
+        Master seed that determines all generated sequences.
+        If None, a random entropy source is used, making results
+        non-reproducible across runs. Providing a value enables
+        reproducible sequences.
+
+    Returns
+    -------
+    List[np.random.SeedSequence]
+        A list of n_streams SeedSequence objects that can be used
+        to initialize random number generators with independent streams.
+
+    Notes
+    -----
+    This approach is preferred over manually creating seeds because
+    it uses NumPy's entropy pool management to guarantee statistical
+    independence between streams, avoiding subtle correlations that
+    might occur with manually chosen seeds.
+
+    Examples
+    --------
+    >>> seeds = spawn_seeds(3, main_seed=12345)
+    >>> rng1 = np.random.default_rng(seeds[0])
+    >>> rng2 = np.random.default_rng(seeds[1])
+    >>> rng3 = np.random.default_rng(seeds[2])
+    """
+    seed_sequence = np.random.SeedSequence(main_seed)
+    seeds = seed_sequence.spawn(n_streams)
+    return seeds
+
+
+class DistributionRegistry:
+    """
+    Registry for probability distribution classes with batch creation capabilities.
+
+    The DistributionRegistry provides a central repository for registering
+    distribution classes and instantiating them from configuration data. This
+    facilitates dynamic creation of distribution objects based on runtime
+    configuration, supporting scenarios like simulation models, statistical
+    analysis, or any application requiring configurable random distributions.
+
+    Key features:
+    - Register distribution classes with a simple decorator
+    - Create distribution instances from class names and parameters
+    - Batch create multiple distributions from a dictionary or list
+    - Automatic generation of statistically independent random seeds
+
+    Examples
+    --------
+    Register distribution classes:
+
+    >>> @DistributionRegistry.register()
+    ... class Exponential:
+    ...     def __init__(self, mean, random_seed=None):
+    ...         self.rng = np.random.default_rng(random_seed)
+    ...         self.mean = mean
+    ...
+    ...     def sample(self, size=None):
+    ...         return self.rng.exponential(self.mean, size=size)
+    ...
+    >>> @DistributionRegistry.register("uniform_dist")  # Custom name
+    ... class Uniform:
+    ...     def __init__(self, low, high, random_seed=None):
+    ...         self.rng = np.random.default_rng(random_seed)
+    ...         self.low = low
+    ...         self.high = high
+    ...
+    ...     def sample(self, size=None):
+    ...         return self.rng.uniform(self.low, self.high, size=size)
+
+    Create a distribution with parameters:
+
+    >>> exp_dist = DistributionRegistry.create("Exponential", mean=2.0)
+    >>> exp_dist.sample(5)  # Generate 5 samples
+
+    Create multiple distributions from configuration:
+
+    >>> config = {
+    ...     "arrivals": {
+    ...         "class_name": "Exponential",
+    ...         "params": {"mean": 5.0}
+    ...     },
+    ...     "service_times": {
+    ...         "class_name": "uniform_dist",
+    ...         "params": {"low": 1.0, "high": 3.0}
+    ...     }
+    ... }
+    >>> distributions = DistributionRegistry.create_batch(config, main_seed=12345)
+    >>> arrivals = distributions["arrivals"]
+    >>> service_times = distributions["service_times"]
+
+    Notes
+    -----
+    When creating distributions in batch with a main_seed, each distribution
+    receives its own statistically independent seed derived from the main seed.
+    This ensures proper statistical independence between random number streams
+    while maintaining overall reproducibility through the main seed.
+    """
+
+    _registry = {}
+
+    @classmethod
+    def register(cls, name: Optional[str] = None):
+        """
+        Decorator to register a distribution class in the registry.
+
+        Parameters
+        ----------
+        name : Optional[str], default=None
+            Name to register the class under. If None, uses the class name.
+
+        Returns
+        -------
+        Callable
+            Decorator function that registers the class
+        """
+
+        def decorator(distribution_class: Distribution):
+            nonlocal name
+            if name is None:
+                name = distribution_class.__name__
+            cls._registry[name] = distribution_class
+            return distribution_class
+
+        return decorator
+
+    @classmethod
+    def get(cls, name: str):
+        """
+        Get a distribution class by name.
+
+        Parameters
+        ----------
+        name : str
+            Name of the registered distribution class
+
+        Returns
+        -------
+        type
+            The registered distribution class
+
+        Raises
+        ------
+        ValueError
+            If the distribution name is not found in the registry
+        """
+        if name not in cls._registry:
+            raise ValueError(f"Distribution '{name}' not found in registry")
+        return cls._registry[name]
+
+    @classmethod
+    def create(cls, name: str, **params):
+        """
+        Create a distribution instance by name.
+
+        Parameters
+        ----------
+        name : str
+            Name of the registered distribution class
+        **params
+            Parameters to pass to the distribution constructor
+
+        Returns
+        -------
+        Any
+            Instance of the requested distribution class
+        """
+        distribution_class = cls.get(name)
+        return distribution_class(**params)
+
+    @classmethod
+    def create_batch(
+        cls,
+        config: Union[List[Dict], Dict[str, Dict]],
+        main_seed: Optional[int] = None,
+    ) -> Union[List, Dict]:
+        """
+        Create multiple distributions from a configuration dictionary or list.
+
+        Parameters
+        ----------
+        config : Union[List[Dict], Dict[str, Dict]]
+            Either:
+            - A list of distribution configs, each with 'class_name' and 'params'
+            - A dictionary mapping names to distribution configs
+        main_seed : Optional[int], default=None
+            Master seed to generate individual seeds for each distribution.
+            If None, random seeds will still be generated for independence.
+
+        Returns
+        -------
+        Union[List, Dict]
+            Either:
+            - A list of distribution instances (if config was a list)
+            - A dictionary mapping names to distribution instances
+
+        Raises
+        ------
+        TypeError
+            If config is neither a list nor a dictionary
+        """
+        # Handle list configuration
+        if isinstance(config, list):
+            # spawn seeds for non-overlapping streams
+            seeds = spawn_seeds(len(config), main_seed)
+
+            # Create distribution instances
+            result = []
+            for i, dist_config in enumerate(config):
+                params = dist_config["params"].copy()
+                params["random_seed"] = seeds[i]
+                dist = cls.create(dist_config["class_name"], **params)
+                result.append(dist)
+            return result
+
+        # Handle dictionary configuration
+        elif isinstance(config, dict):
+            # Get all configuration items
+            items = list(config.items())
+
+            # spawn seeds for non-overlapping streams
+            seeds = spawn_seeds(len(items), main_seed)
+
+            # Create distribution instances
+            result = {}
+            for i, (name, dist_config) in enumerate(items):
+                params = dist_config["params"].copy()
+                params["random_seed"] = seeds[i]
+                dist = cls.create(dist_config["class_name"], **params)
+                result[name] = dist
+            return result
+
+        else:
+            raise TypeError("Configuration must be a list or dictionary")
+
+
 # pylint: disable=too-few-public-methods
+@DistributionRegistry.register()
 class Exponential:
     """
     Exponential distribution implementation.
@@ -163,6 +424,7 @@ class Exponential:
 
 
 # pylint: disable=too-few-public-methods
+@DistributionRegistry.register()
 class Bernoulli:
     """
     Bernoulli distribution implementation.
@@ -217,6 +479,7 @@ class Bernoulli:
         return self.rng.binomial(n=1, p=self.p, size=size)
 
 
+@DistributionRegistry.register()
 class Lognormal:
     """
     Lognormal distribution implementation.
@@ -308,6 +571,7 @@ class Lognormal:
         return self.rng.lognormal(self.mu, self.sigma, size=size)
 
 
+@DistributionRegistry.register()
 class Normal:
     """
     Normal distribution implementation with optional truncation.
@@ -390,6 +654,7 @@ class Normal:
         return samples
 
 
+@DistributionRegistry.register()
 class Uniform:
     """
     Uniform distribution implementation.
@@ -450,6 +715,7 @@ class Uniform:
         return self.rng.uniform(low=self.low, high=self.high, size=size)
 
 
+@DistributionRegistry.register()
 class Triangular:
     """
     Triangular distribution implementation.
@@ -515,6 +781,7 @@ class Triangular:
         return self.rng.triangular(self.low, self.mode, self.high, size=size)
 
 
+@DistributionRegistry.register()
 class FixedDistribution:
     """
     Fixed distribution implementation.
@@ -565,6 +832,7 @@ class FixedDistribution:
         return self.value
 
 
+@DistributionRegistry.register()
 class CombinationDistribution:
     """
     Combination distribution implementation.
@@ -619,6 +887,7 @@ class CombinationDistribution:
         return total
 
 
+@DistributionRegistry.register()
 class ContinuousEmpirical:
     """
     Continuous Empirical Distribution implementation.
@@ -735,6 +1004,7 @@ class ContinuousEmpirical:
         return result
 
 
+@DistributionRegistry.register()
 class Erlang:
     """
     Erlang distribution implementation.
@@ -819,6 +1089,7 @@ class Erlang:
         return self.rng.gamma(self.k, self.theta, size) + self.location
 
 
+@DistributionRegistry.register()
 class Weibull:
     """
     Weibull distribution implementation.
@@ -901,6 +1172,7 @@ class Weibull:
         return self.scale * self.rng.weibull(self.shape, size) + self.location
 
 
+@DistributionRegistry.register()
 class Gamma:
     """
     Gamma distribution implementation with shape (alpha) and scale (beta) parameters.
@@ -1023,6 +1295,7 @@ class Gamma:
         return samples + self.location
 
 
+@DistributionRegistry.register()
 class Beta:
     """
     Beta distribution implementation.
@@ -1101,6 +1374,7 @@ class Beta:
         )
 
 
+@DistributionRegistry.register()
 class Discrete:
     """
     Discrete distribution implementation.
@@ -1180,6 +1454,7 @@ class Discrete:
         return sample
 
 
+@DistributionRegistry.register()
 class TruncatedDistribution:
     """
     Truncated Distribution implementation.
@@ -1242,6 +1517,7 @@ class TruncatedDistribution:
         return samples
 
 
+@DistributionRegistry.register()
 class RawEmpirical:
     """
     Raw Empirical distribution implementation.
@@ -1306,6 +1582,7 @@ class RawEmpirical:
         return samples
 
 
+@DistributionRegistry.register()
 class PearsonV:
     """
     Pearson Type V distribution implementation (inverse Gamma distribution).
@@ -1433,6 +1710,7 @@ class PearsonV:
         return 1 / self.rng.gamma(self.alpha, 1 / self.beta, size)
 
 
+@DistributionRegistry.register()
 class PearsonVI:
     """
     Pearson Type VI distribution implementation (inverted beta distribution).
@@ -1567,6 +1845,7 @@ class PearsonVI:
         return self.beta * x / (1 - x)
 
 
+@DistributionRegistry.register()
 class ErlangK:
     """
     Erlang distribution where k and theta are specified.
@@ -1645,6 +1924,7 @@ class ErlangK:
         return self.rng.gamma(self.k, self.theta, size) + self.location
 
 
+@DistributionRegistry.register()
 class Poisson:
     """
     Poisson distribution implementation.

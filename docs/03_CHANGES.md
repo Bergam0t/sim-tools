@@ -1,5 +1,36 @@
 # Change log
 
+## [v0.9.0]
+
+### Added
+
+* `distributions.DistributionRegistry` - for batch creation of standard distributions from a dictionary or list.  
+
+## [v0.8.0](https://github.com/TomMonks/sim-tools/releases/tag/v0.8.0a)
+
+### Added
+
+* Add `simpy` and `treat-sim` to the environment, as these were required in the notebooks in `docs/`.
+* Add `nbqa` and `pylint` to the environment for linting, plus a relevant files `lint.sh` and `.pylintrc`.
+* Add tests for `output_analysis` functions (functional, unit and back tests).
+* Add validation of parameters in `ReplicationsAlgorithm`.
+* Add validation of data type in `OnlineStatistics`.
+
+### Changed
+
+* Simplified distribution value type tests to a single test where possible using `pytest.mark.parametrize`.
+* Linted `.py` and `.ipynb` files using `pylint` (most addressed, some remain unresolved).
+* Provided advice on tests, building docs and linting in the `README.md`.
+* `00_front_page.md` now just imported `README.md` (reducing duplication, and keping it up-to-date).
+
+### Removed
+
+* Removed duplicate `sw21_tutorial.ipynb`.
+
+### Fixed
+
+* Within `confidence_interval_method`, convert data provided to `OnlineStatistics` to `np.array` so that it is actually used to update the class (when before, it was not, as it was a list).
+
 ## [v0.7.1](https://github.com/TomMonks/sim-tools/releases/tag/v0.7.1)  [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14844701.svg)](https://doi.org/10.5281/zenodo.14844701)
 
 ### Fixed
