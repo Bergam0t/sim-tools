@@ -1,12 +1,58 @@
 # pylint: disable=too-many-lines
 """
-Convenient encapsulation of distributions  and sampling from distributions not
-directly available in scipy or numpy.
+Statistical distribution classes for simulation modeling.
 
-Useful for simulation.
+This module provides a collection of statistical distribution classes designed for
+simulation applications. Each distribution implements the Distribution protocol,
+which requires a sample() method that generates random values according to the
+distribution's parameters.
 
-Each distribution has its own random number stream
-that can be set by a seed.
+Features
+--------
+- Consistent interface via the Distribution protocol
+- Independent random number streams for each distribution instance
+- Support for reproducible sampling via random seeds
+- Implementation of distributions not directly available in scipy or numpy
+
+Distributions
+------------
+The module includes common statistical distributions such as:
+- Exponential, Normal, Lognormal, Uniform, Triangular, Beta
+- Gamma, Weibull, Erlang, ErlangK, Poisson
+- Bernoulli, Discrete, PearsonV, PearsonVI
+- Empirical distributions (ContinuousEmpirical, RawEmpirical)
+- Utility distributions (FixedDistribution, CombinationDistribution, TruncatedDistribution)
+
+Random Number Generation
+-----------------------
+Each distribution manages its own random number generator instance. All distributions
+that accept a random_seed parameter support:
+- Integer seeds for basic reproducibility
+- numpy.random.SeedSequence objects for advanced stream management
+- None for auto-generated seeds
+
+Examples
+--------
+Basic usage:
+>>> from simtools.distributions import Normal
+>>> norm_dist = Normal(mean=10, sigma=2)
+>>> norm_dist.sample()  # Single sample
+10.436523
+>>> norm_dist.sample(3)  # Multiple samples
+array([10.02, 12.21, 9.33])
+
+Using SeedSequence for multiple streams:
+>>> import numpy as np
+>>> from simtools.distributions import Exponential, Uniform
+>>> seed_seq = np.random.SeedSequence(12345)
+>>> seeds = seed_seq.spawn(2)
+>>> exp_dist = Exponential(mean=5, random_seed=seeds[0])
+>>> uni_dist = Uniform(low=0, high=10, random_seed=seeds[1])
+
+Notes
+-----
+All distribution parameters follow the conventions described in "Simulation
+Modeling and Analysis" (Law, 2007) where applicable.
 """
 
 import math
