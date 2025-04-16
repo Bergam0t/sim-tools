@@ -13,6 +13,7 @@ import math
 
 import numpy as np
 from numpy.typing import NDArray, ArrayLike
+from numpy.random import SeedSequence
 
 from typing import Protocol, Optional, Union, Tuple, Any, runtime_checkable
 
@@ -70,7 +71,11 @@ class Exponential:
     from an exponential distribution with a specified mean.
     """
 
-    def __init__(self, mean: float, random_seed: Optional[int] = None):
+    def __init__(
+        self,
+        mean: float,
+        random_seed: Optional[Union[int, SeedSequence]] = None,
+    ):
         """
         Initialize an exponential distribution.
 
@@ -80,8 +85,8 @@ class Exponential:
             The mean of the exponential distribution.
             Must be positive.
 
-        random_seed : Optional[int], default=None
-            A random seed to reproduce samples. If None, a unique
+        random_seed : Optional[Union[int, SeedSequence]], default=None
+            A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
         """
         self.rng = np.random.default_rng(random_seed)
@@ -123,7 +128,9 @@ class Bernoulli:
     from a Bernoulli distribution with a specified probability.
     """
 
-    def __init__(self, p: float, random_seed: Optional[int] = None):
+    def __init__(
+        self, p: float, random_seed: Optional[Union[int, SeedSequence]] = None
+    ):
         """
         Initialize a Bernoulli distribution.
 
@@ -132,8 +139,8 @@ class Bernoulli:
         p : float
             Probability of drawing a 1. Must be between 0 and 1.
 
-        random_seed : Optional[int], default=None
-            A random seed to reproduce samples. If None, a unique
+        random_seed : Optional[Union[int, SeedSequence]], default=None
+            A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
         """
         self.rng = np.random.default_rng(random_seed)
@@ -177,7 +184,10 @@ class Lognormal:
     """
 
     def __init__(
-        self, mean: float, stdev: float, random_seed: Optional[int] = None
+        self,
+        mean: float,
+        stdev: float,
+        random_seed: Optional[Union[int, SeedSequence]] = None,
     ):
         """
         Initialize a lognormal distribution.
@@ -190,8 +200,8 @@ class Lognormal:
         stdev : float
             Standard deviation of the lognormal distribution.
 
-        random_seed : Optional[int], default=None
-            Random seed to control sampling. If None, a unique
+        random_seed : Optional[Union[int, SeedSequence]], default=None
+            A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
         """
         self.rng = np.random.default_rng(random_seed)
@@ -268,7 +278,7 @@ class Normal:
         mean: float,
         sigma: float,
         minimum: Optional[float] = None,
-        random_seed: Optional[int] = None,
+        random_seed: Optional[Union[int, SeedSequence]] = None,
     ):
         """
         Initialize a normal distribution.
@@ -285,8 +295,8 @@ class Normal:
             If provided, truncates the distribution to this minimum value.
             Any sampled values below this minimum will be set to this value.
 
-        random_seed : Optional[int], default=None
-            Random seed to control sampling. If None, a unique
+        random_seed : Optional[Union[int, SeedSequence]], default=None
+            A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
         """
         self.rng = np.random.default_rng(seed=random_seed)
@@ -346,7 +356,10 @@ class Uniform:
     """
 
     def __init__(
-        self, low: float, high: float, random_seed: Optional[int] = None
+        self,
+        low: float,
+        high: float,
+        random_seed: Optional[Union[int, SeedSequence]] = None,
     ):
         """
         Initialize a uniform distribution.
@@ -359,8 +372,8 @@ class Uniform:
         high : float
             Upper bound of the distribution range.
 
-        random_seed : Optional[int], default=None
-            Random seed to control sampling. If None, a unique
+        random_seed : Optional[Union[int, SeedSequence]], default=None
+            A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
         """
         self.rng = np.random.default_rng(random_seed)
@@ -407,7 +420,7 @@ class Triangular:
         low: float,
         mode: float,
         high: float,
-        random_seed: Optional[int] = None,
+        random_seed: Optional[Union[int, SeedSequence]] = None,
     ):
         """
         Initialize a triangular distribution.
@@ -423,8 +436,8 @@ class Triangular:
         high : float
             Upper limit of the distribution.
 
-        random_seed : Optional[int], default=None
-            Random seed to control sampling. If None, a unique
+        random_seed : Optional[Union[int, SeedSequence]], default=None
+            A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
         """
         self.rng = np.random.default_rng(random_seed)
@@ -577,7 +590,7 @@ class ContinuousEmpirical:
         lower_bounds: ArrayLike,
         upper_bounds: ArrayLike,
         freq: ArrayLike,
-        random_seed: Optional[int] = None,
+        random_seed: Optional[Union[int, SeedSequence]] = None,
     ):
         """
         Initialize a continuous empirical distribution.
@@ -593,8 +606,8 @@ class ContinuousEmpirical:
         freq : ArrayLike
             Frequency of observations between bounds.
 
-        random_seed : Optional[int], default=None
-            Random seed to control sampling. If None, a unique
+        random_seed : Optional[Union[int, SeedSequence]], default=None
+            A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
         """
         self.rng = np.random.default_rng(random_seed)
@@ -704,7 +717,7 @@ class Erlang:
         mean: float,
         stdev: float,
         location: float = 0.0,
-        random_seed: Optional[int] = None,
+        random_seed: Optional[Union[int, SeedSequence]] = None,
     ):
         """
         Initialize an Erlang distribution.
@@ -721,8 +734,8 @@ class Erlang:
             Offset the origin of the distribution. The returned value
             will be the sampled value plus this location parameter.
 
-        random_seed : Optional[int], default=None
-            Random seed to control sampling. If None, a unique
+        random_seed : Optional[Union[int, SeedSequence]], default=None
+            A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
         """
         self.rng = np.random.default_rng(random_seed)
@@ -776,7 +789,7 @@ class Weibull:
         alpha: float,
         beta: float,
         location: float = 0.0,
-        random_seed: Optional[int] = None,
+        random_seed: Optional[Union[int, SeedSequence]] = None,
     ):
         """
         Initialize a three-parameter Weibull distribution.
@@ -793,8 +806,8 @@ class Weibull:
         location : float, default=0.0
             An offset to shift the distribution from 0.
 
-        random_seed : Optional[int], default=None
-            Random seed to control sampling. If None, a unique
+        random_seed : Optional[Union[int, SeedSequence]], default=None
+            A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
 
         Notes
@@ -857,7 +870,7 @@ class Gamma:
         alpha: float,
         beta: float,
         location: float = 0.0,
-        random_seed: Optional[int] = None,
+        random_seed: Optional[Union[int, SeedSequence]] = None,
     ):
         """
         Initialize a Gamma distribution.
@@ -873,8 +886,9 @@ class Gamma:
         location : float, default=0.0
             Offset value added to all samples.
 
-        random_seed : Optional[int], default=None
-            Seed for reproducible sampling.
+        random_seed : Optional[Union[int, SeedSequence]], default=None
+            A random seed or SeedSequence to reproduce samples. If None, a unique
+            sample sequence is generated.
 
         Raises
         ------
@@ -985,7 +999,7 @@ class Beta:
         alpha2: float,
         lower_bound: float = 0.0,
         upper_bound: float = 1.0,
-        random_seed: Optional[int] = None,
+        random_seed: Optional[Union[int, SeedSequence]] = None,
     ):
         """
         Initialize a Beta distribution.
@@ -1004,8 +1018,8 @@ class Beta:
         upper_bound : float, default=1.0
             Upper bound for rescaling the distribution from [0,1] to [lower_bound, upper_bound].
 
-        random_seed : Optional[int], default=None
-            Random seed to control sampling. If None, a unique
+        random_seed : Optional[Union[int, SeedSequence]], default=None
+            A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
         """
         self.rng = np.random.default_rng(random_seed)
@@ -1059,7 +1073,7 @@ class Discrete:
         self,
         values: ArrayLike,
         freq: ArrayLike,
-        random_seed: Optional[int] = None,
+        random_seed: Optional[Union[int, SeedSequence]] = None,
     ):
         """
         Initialize a discrete distribution.
@@ -1073,8 +1087,8 @@ class Discrete:
             List of observed frequencies or probabilities. Must be of equal length to values.
             These will be normalized to sum to 1.
 
-        random_seed : Optional[int], default=None
-            Random seed to control sampling. If None, a unique
+        random_seed : Optional[Union[int, SeedSequence]], default=None
+            A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
 
         Raises
@@ -1192,7 +1206,11 @@ class RawEmpirical:
     This class conforms to the Distribution protocol.
     """
 
-    def __init__(self, values: ArrayLike, random_seed: Optional[int] = None):
+    def __init__(
+        self,
+        values: ArrayLike,
+        random_seed: Optional[Union[int, SeedSequence]] = None,
+    ):
         """
         Initialize a raw empirical distribution.
 
@@ -1201,8 +1219,8 @@ class RawEmpirical:
         values : ArrayLike
             List of empirical sample values to sample from with replacement.
 
-        random_seed : Optional[int], default=None
-            Random seed to control sampling. If None, a unique
+        random_seed : Optional[Union[int, SeedSequence]], default=None
+            A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
 
         Notes
@@ -1273,7 +1291,10 @@ class PearsonV:
     """
 
     def __init__(
-        self, alpha: float, beta: float, random_seed: Optional[int] = None
+        self,
+        alpha: float,
+        beta: float,
+        random_seed: Optional[Union[int, SeedSequence]] = None,
     ):
         """
         Initialize a Pearson Type V distribution.
@@ -1286,8 +1307,8 @@ class PearsonV:
         beta : float
             Scale parameter. Must be > 0.
 
-        random_seed : Optional[int], default=None
-            Random seed to control sampling. If None, a unique
+        random_seed : Optional[Union[int, SeedSequence]], default=None
+            A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
 
         Raises
@@ -1402,7 +1423,7 @@ class PearsonVI:
         alpha1: float,
         alpha2: float,
         beta: float,
-        random_seed: Optional[int] = None,
+        random_seed: Optional[Union[int, SeedSequence]] = None,
     ):
         """
         Initialize a Pearson Type VI distribution.
@@ -1418,8 +1439,8 @@ class PearsonVI:
         beta : float
             Scale parameter. Must be > 0.
 
-        random_seed : Optional[int], default=None
-            Random seed to control sampling. If None, a unique
+        random_seed : Optional[Union[int, SeedSequence]], default=None
+            A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
 
         Raises
@@ -1517,7 +1538,7 @@ class ErlangK:
         k: int,
         theta: float,
         location: float = 0.0,
-        random_seed: Optional[int] = None,
+        random_seed: Optional[Union[int, SeedSequence]] = None,
     ):
         """
         Initialize an Erlang distribution with specified k and theta.
@@ -1534,8 +1555,8 @@ class ErlangK:
             Offset the origin of the distribution i.e.
             the returned value = sample[Erlang] + location
 
-        random_seed : Optional[int], default=None
-            A random seed to reproduce samples. If set to None then a unique
+        random_seed : Optional[Union[int, SeedSequence]], default=None
+            A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
 
         Raises
@@ -1592,7 +1613,11 @@ class Poisson:
     Law (2007 pg. 308) Simulation modelling and analysis.
     """
 
-    def __init__(self, rate: float, random_seed: Optional[int] = None):
+    def __init__(
+        self,
+        rate: float,
+        random_seed: Optional[Union[int, SeedSequence]] = None,
+    ):
         """
         Initialize a Poisson distribution.
 
@@ -1601,8 +1626,8 @@ class Poisson:
         rate : float
             Mean number of events in time period.
 
-        random_seed : Optional[int], default=None
-            A random seed to reproduce samples. If set to None then a unique
+        random_seed : Optional[Union[int, SeedSequence]], default=None
+            A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
         """
         self.rng = np.random.default_rng(random_seed)
