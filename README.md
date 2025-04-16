@@ -70,7 +70,7 @@ If you use sim0tools for research, a practical report, education or any reason p
 
 # Online Tutorials
 
-* Optimisation Via Simulation [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/TomMonks/sim-tools/blob/master/examples/sw21_tutorial.ipynb)
+* Optimisation Via Simulation [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/TomMonks/sim-tools/blob/master/docs/02_ovs/03_sw21_tutorial.ipynb)
 
 
 ## Contributing to sim-tools
@@ -84,3 +84,23 @@ Development environment:
 * `conda activate sim_tools`
 
 **All contributions are welcome!**
+
+## Tips
+
+Once in the `sim_tools` environment, you can run tests using the following command:
+
+```
+pytest
+```
+
+To view the documentation, navigate to the top level directory of the code repository in your terminal and issue the following command to build the Jupyter Book:
+
+```
+jb build docs/
+```
+
+To lint the repository, run:
+
+```
+bash lint.sh
+```

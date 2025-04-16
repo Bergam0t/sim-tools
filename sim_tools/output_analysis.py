@@ -9,13 +9,14 @@ The Confidence Interval Method (tables and visualisation)
 The Replications Algorithm (Hoad et al. 2010).
 """
 
+import warnings
+from typing import Protocol, runtime_checkable, Optional
+
 import plotly.graph_objects as go
 import numpy as np
 import pandas as pd
 from scipy.stats import t
-import warnings
 
-from typing import Protocol, runtime_checkable, Optional
 
 OBSERVER_INTERFACE_ERROR = (
     "Observers of OnlineStatistics must implement "
@@ -30,12 +31,12 @@ ALG_INTERFACE_ERROR = (
 )
 
 
+# pylint: disable=too-few-public-methods
 @runtime_checkable
 class ReplicationObserver(Protocol):
     """
-    Interface for an observer of an instance of the ReplicationsAnalyser
+    Interface for an observer of an instance of the ReplicationsAnalyser.
     """
-
     def update(self, results) -> None:
         """
         Add an observation of a replication
@@ -45,7 +46,6 @@ class ReplicationObserver(Protocol):
         results: OnlineStatistic
             The current replication to observe.
         """
-        pass
 
 
 class OnlineStatistics:
@@ -78,8 +78,9 @@ class OnlineStatistics:
 
         observer: ReplicationObserver, optional (default=None)
             A user may optionally track the updates to the statistics using a
-            ReplicationObserver (e.g. ReplicationTabuliser). This allows further
-            tabular or visual analysis or saving results to file if required.
+            ReplicationObserver (e.g. ReplicationTabuliser). This allows
+            further tabular or visual analysis or saving results to file if
+            required.
 
         """
 
@@ -93,9 +94,15 @@ class OnlineStatistics:
         if observer is not None:
             self.register_observer(observer)
 
-        if isinstance(data, np.ndarray):
-            for x in data:
-                self.update(x)
+        if data is not None:
+            if isinstance(data, np.ndarray):
+                for x in data:
+                    self.update(x)
+            # Raise an error if in different format - else will invisibly
+            # proceed and won't notice it hasn't done this
+            else:
+                raise ValueError(
+                    f"data must be np.ndarray but is type {type(data)}")
 
     def register_observer(self, observer: ReplicationObserver) -> None:
         """
@@ -126,8 +133,7 @@ class OnlineStatistics:
         """
         if self.n > 2:
             return np.sqrt(self.variance)
-        else:
-            return np.nan
+        return np.nan
 
     @property
     def std_error(self) -> float:
@@ -152,8 +158,7 @@ class OnlineStatistics:
         """
         if self.n > 2:
             return self.mean - self.half_width
-        else:
-            return np.nan
+        return np.nan
 
     @property
     def uci(self) -> float:
@@ -162,8 +167,7 @@ class OnlineStatistics:
         """
         if self.n > 2:
             return self.mean + self.half_width
-        else:
-            return np.nan
+        return np.nan
 
     @property
     def deviation(self) -> float:
@@ -173,8 +177,7 @@ class OnlineStatistics:
         """
         if self.n > 2:
             return self.half_width / self.mean
-        else:
-            return np.nan
+        return np.nan
 
     def update(self, x: float) -> None:
         """
@@ -327,7 +330,8 @@ def confidence_interval_method(
     # welford's method to track cumulative mean and construct CIs at each rep
     # track the process and construct data table using ReplicationTabuliser
     observer = ReplicationTabulizer()
-    stats = OnlineStatistics(alpha=alpha, data=replications[:2], observer=observer)
+    stats = OnlineStatistics(
+        alpha=alpha, data=np.array(replications[:2]), observer=observer)
 
     # iteratively update.
     for i in range(2, len(replications)):
@@ -335,7 +339,8 @@ def confidence_interval_method(
 
     results = observer.summary_table()
 
-    # get the smallest no. of reps where deviation is less than precision target
+    # get the smallest no. of reps where deviation is less than precision
+    # target
     try:
         n_reps = (
             results.iloc[min_rep:]
@@ -384,13 +389,15 @@ def plotly_confidence_interval_method(
 
     # Confidence interval bands with hover info
     for col, color, dash in zip(
-        ["Lower Interval", "Upper Interval"], ["lightblue", "lightblue"], ["dot", "dot"]
+        ["Lower Interval", "Upper Interval"],
+        ["lightblue", "lightblue"],
+        ["dot", "dot"]
     ):
         fig.add_trace(
             go.Scatter(
                 x=conf_ints.index,
                 y=conf_ints[col],
-                line=dict(color=color, dash=dash),
+                line={"color": color, "dash": dash},
                 name=col,
                 text=[f"Deviation: {d}%" for d in deviation_pct],
                 hoverinfo="x+y+name+text",
@@ -402,7 +409,7 @@ def plotly_confidence_interval_method(
         go.Scatter(
             x=conf_ints.index,
             y=conf_ints["Cumulative Mean"],
-            line=dict(color="blue", width=2),
+            line={"color": "blue", "width": 2},
             name="Cumulative Mean",
             hoverinfo="x+y+name",
         )
@@ -416,7 +423,7 @@ def plotly_confidence_interval_method(
         y0=0,
         y1=1,
         yref="paper",
-        line=dict(color="red", dash="dash"),
+        line={"color": "red", "dash": "dash"},
     )
 
     # Configure layout
@@ -444,13 +451,13 @@ class ReplicationsAlgorithmModelAdapter(Protocol):
         """
         Perform a unique replication of the model. Return a performance measure
         """
-        pass
 
 
+# pylint: disable=too-many-instance-attributes
 class ReplicationsAlgorithm:
     """
-    An implementation of the "Replications Algorithm" from
-    Hoad, Robinson, & Davies (2010).
+    An implementation of the "Replications Algorithm" from Hoad, Robinson, &
+    Davies (2010).
 
     Given a model's performance measure, and a user set CI half width precision
     automatically select the number of replications.
@@ -464,7 +471,7 @@ class ReplicationsAlgorithm:
     Sources:
     -------
 
-    Please cite the authors of the algorthim if you use it in your work.
+    Please cite the authors of the algorithm if you use it in your work.
 
     Hoad, Robinson, & Davies (2010). Automated selection of the number of
     replications for a discrete-event simulation. Journal of the Operational
@@ -472,7 +479,7 @@ class ReplicationsAlgorithm:
 
     Please also cite sim-tools!
     """
-
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
     def __init__(
         self,
         alpha: Optional[float] = 0.05,
@@ -532,6 +539,26 @@ class ReplicationsAlgorithm:
 
         self.observer = observer
 
+        self.stats = None
+
+        # Check validity of provided parameters
+        self.valid_inputs()
+
+    def valid_inputs(self):
+        """
+        Checks validity of provided parameters.
+        """
+        for p in [self.initial_replications, self.look_ahead]:
+            if not isinstance(p, int) or p < 0:
+                raise ValueError(f'{p} must be a non-negative integer.')
+
+        if self.half_width_precision <= 0:
+            raise ValueError('half_width_precision must be greater than 0.')
+
+        if self.replication_budget < self.initial_replications:
+            raise ValueError(
+                'replication_budget must be less than initial_replications.')
+
     def _klimit(self) -> int:
         """
         Return the current look ahead.
@@ -541,14 +568,24 @@ class ReplicationsAlgorithm:
         return int((self.look_ahead / 100) * max(self.n, 100))
 
     def select(self, model: ReplicationsAlgorithmModelAdapter) -> int:
+        """
+        Executes the replication algorithm, determining the necessary number
+        of replications to achieve and maintain the desired precision.
 
+        Parameters:
+        -----------
+        model (ReplicationsAlgorithmModelAdapter):
+            Simulation model.
+        """
+        # Check validity of provided model
         if not isinstance(model, ReplicationsAlgorithmModelAdapter):
             raise ValueError(ALG_INTERFACE_ERROR)
 
         converged = False
 
         # run initial replications of model
-        x_i = [model.single_run(rep) for rep in range(self.initial_replications)]
+        x_i = [
+            model.single_run(rep) for rep in range(self.initial_replications)]
 
         # initialise running mean and std dev
         self.stats = OnlineStatistics(

@@ -11,13 +11,9 @@ update the variance estimate of designs at each stage.
 
 import numpy as np
 
-# from .toy_models import (BanditCasino,
-#                          GaussianBandit,
-#                          gaussian_bandit_sequence,
-#                          gaussian_sequence_model)
 
-
-class KNPlusPlus(object):
+# pylint: disable=too-many-instance-attributes
+class KNPlusPlus():
     """
     KN++ algorithm for Ranking and Selection
 
@@ -29,7 +25,7 @@ class KNPlusPlus(object):
     https://www2.isye.gatech.edu/~skim/KimNelson.pdf
 
     """
-
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
     def __init__(self, model, n_designs, delta, alpha=0.05, n_0=2, obj="max"):
         """
         Constructor method for KN++  Ranking and Selection Procedure.
@@ -89,6 +85,10 @@ class KNPlusPlus(object):
             self._negate = -1.0
 
         self._obj = obj
+        self._n = None
+        self._eta = None
+        self._h_squared = None
+        self._contenders_old = None
 
     def _calculate_eta(self):
         return 0.5 * (
@@ -100,15 +100,16 @@ class KNPlusPlus(object):
         )
 
     def __str__(self):
-        return f"KN(n_designs={self._k}, delta={self._delta}, alpha={self._alpha}, n_0={self._n_0}, obj={self._obj})"
+        return (f"KN(n_designs={self._k}, delta={self._delta}, " +
+                f"alpha={self._alpha}, n_0={self._n_0}, obj={self._obj})")
 
     def reset(self):
         """Resets all attributes"""
-        self._total_reward = 0
+        # self._total_reward = 0
         self._allocations = np.zeros(self._k, np.int32)
         self._means = np.zeros(self._k, np.float64)
         self._allocations = np.zeros(self._k, np.int32)
-        self._init_obs = np.zeros((self._k, self._n_0), np.float64)
+        # self._init_obs = np.zeros((self._k, self._n_0), np.float64)
         self._contenders = np.arange(self._k)
         self._vars = np.zeros(self._k, np.float64)
         self._sq = np.zeros(self._k, np.float64)
@@ -133,7 +134,7 @@ class KNPlusPlus(object):
         Estimate initial sample means and variances of the differences
 
         """
-        for observation in range(self._n_0):
+        for _ in range(self._n_0):
             self._sequential_replication()
 
         self._eta = self._calculate_eta()
@@ -165,21 +166,19 @@ class KNPlusPlus(object):
         Loop through remaining contenders and screen if
         mean(design_i) < mean(design_j) - epsilon_ij
 
-        where epsilon_ij (w_ij in some papers) determines how far the sample mean
-        from system i can drop below the sample mean of system j without being eliminated.
+        where epsilon_ij (w_ij in some papers) determines how far the sample
+        mean from system i can drop below the sample mean of system j without
+        being eliminated.
         """
         self._contenders_old = np.asarray(self._contenders).copy()
         contenders_mask = np.full(self._contenders.shape, True, dtype=bool)
 
-        # inefficient way to code this...will update to pure numpy at some stage
+        # inefficient way to code this...
+        # will update to pure numpy at some stage
 
-        for i in range(len(self._contenders_old)):
-            for j in range(len(self._contenders_old)):
+        for i, design_i in enumerate(self._contenders_old):
+            for j, design_j in enumerate(self._contenders_old):
                 if i != j:
-                    design_i, design_j = (
-                        self._contenders_old[i],
-                        self._contenders_old[j],
-                    )
                     w_ij = self._elimination_distance(design_i, design_j)
 
                     if self._means[design_i] < self._means[design_j] - w_ij:
@@ -214,7 +213,8 @@ class KNPlusPlus(object):
         var_j = self._vars[design_j]
         sum_of_vars = var_i + var_j
 
-        # I think the problem is that I am not using the variance of the differences.
+        # I think the problem is that I am not using the variance of the
+        # differences.
         w_ij = (self._delta / (2 * self._n)) * (
             ((self._h_squared * (sum_of_vars)) / self._delta**2) - self._n
         )
@@ -229,7 +229,7 @@ class KNPlusPlus(object):
         self._eta = self._calculate_eta()
         self._h_squared = 2 * self._eta * (self._n - 1)
 
-    def feedback(self, *args, **kwargs):
+    def feedback(self, *args):
         """
         Feedback from the simulated environment
         Recieves an observation from the system
@@ -240,9 +240,6 @@ class KNPlusPlus(object):
                  0  sender object
                  1. design index to update
                  2. observation
-
-        *kwargs -- dict of keyword arguments
-
         """
         design_index = args[1]
         observation = args[2]
@@ -276,7 +273,11 @@ class KNPlusPlus(object):
         self._means[design_index] = new_mean
 
 
-class KN(object):
+class KN():
+    """
+    KN - (Kim-Nelson) sequential Ranking and Selection Algorithm
+    """
+    # pylint: disable = too-many-arguments,too-many-positional-arguments
     def __init__(self, model, n_designs, delta, alpha=0.05, n_0=2, obj="max"):
         """
         Constructor method for KN  Ranking and Selection Procedure.
@@ -337,12 +338,19 @@ class KN(object):
             self._negate = -1.0
 
         self._obj = obj
+        self._h_squared = None
+        self._contenders_old = None
+        self._variance_of_diffs = None
 
     def __str__(self):
-        return f"KN(n_designs={self._k}, delta={self._delta}, alpha={self._alpha}, n_0={self._n_0}, obj={self._obj})"
+        return (f"KN(n_designs={self._k}, delta={self._delta}, " +
+                f"alpha={self._alpha}, n_0={self._n_0}, obj={self._obj})")
 
     def reset(self):
-        self._total_reward = 0
+        """
+        Reset values.
+        """
+        # self._total_reward = 0
         self._allocations = np.zeros(self._k, np.int32)
         self._means = np.zeros(self._k, np.float64)
         self._allocations = np.zeros(self._k, np.int32)
@@ -370,7 +378,7 @@ class KN(object):
         """
         self._h_squared = 2 * self._eta * (self._n_0 - 1)
 
-        for observation in range(self._n_0):
+        for _ in range(self._n_0):
             self._sequential_replication()
 
         self._variance_of_diffs = self._calc_variance_of_differences()
@@ -385,7 +393,8 @@ class KN(object):
         pairwise_diffs = self._init_obs[:, None] - self._init_obs
         variance_of_diffs = pairwise_diffs.var(axis=-1, ddof=1)
         # flattens array and drops differences with same design
-        return variance_of_diffs[~np.eye(variance_of_diffs.shape[0], dtype=bool)]
+        return variance_of_diffs[
+            ~np.eye(variance_of_diffs.shape[0], dtype=bool)]
 
     # need to check if this is correct...
     # possibly a bug.  Works when in designs are ordered, but not otherwise...
@@ -396,19 +405,16 @@ class KN(object):
         # terrible way to code this...!
 
         # designs in contention for this round
-        for i in range(len(self._contenders_old)):
-            for l in range(len(self._contenders_old)):
+        for i, design_i in enumerate(self._contenders_old):
+            for l, design_l in enumerate(self._contenders_old):
                 if i != l:
-                    design_i, design_l = (
-                        self._contenders_old[i],
-                        self._contenders_old[l],
-                    )
-
-                    if not self._design_still_in_contention(design_i, design_l):
+                    if not self._design_still_in_contention(design_i,
+                                                            design_l):
                         contenders_mask[i] = False
                         break
 
         self._contenders = self._contenders[contenders_mask]
+
 
     def _design_still_in_contention(self, design_i, design_l):
         w_il = self._limit_to_distance_from_sample_means(design_i, design_l)
@@ -429,7 +435,8 @@ class KN(object):
         index = design_i * (self._k - 1) + (design_l - 1)
 
         w_il = (self._delta / (2 * self._r)) * (
-            ((self._h_squared * self._variance_of_diffs[index]) / self._delta**2)
+            ((self._h_squared * self._variance_of_diffs[index])
+             / self._delta**2)
             - self._r
         )
 
@@ -446,7 +453,7 @@ class KN(object):
 
         return False
 
-    def feedback(self, *args, **kwargs):
+    def feedback(self, *args):
         """
         Feedback from the environment
         Recieves a reward and updates understanding
@@ -458,10 +465,6 @@ class KN(object):
                  0  sender object
                  1. design index to update
                  2. observation
-
-        *kwards -- dict of keyword arguments:
-                   None expected!
-
         """
         design_index = args[1]
         observation = args[2]

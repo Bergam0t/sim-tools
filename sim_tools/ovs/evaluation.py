@@ -13,10 +13,11 @@ import pandas as pd
 from sklearn.model_selection import ParameterGrid
 
 
-class AgentSimulation(object):
+# pylint: disable=too-few-public-methods
+class AgentSimulation():
     """
     Encapsulates a Monte-Carlo simulation framework for agents in
-    multi-arm bandit environment
+    multi-arm bandit environment.
 
     Agents must implement the interface
 
@@ -25,11 +26,19 @@ class AgentSimulation(object):
     """
 
     def __init__(self, environment, agent, replications=1000):
+        """
+        Initialises the AgentSimulation object with the given environment,
+        agent, and parameters.
+        """
         self._env = environment
         self._agent = agent
         self._reps = replications
 
     def simulate(self):
+        """
+        Runs the Monte-Carlo simulation for the specified number of
+        replications.
+        """
         best_indexes = np.zeros(self._reps, np.int32)
 
         for rep in range(self._reps):
@@ -40,32 +49,44 @@ class AgentSimulation(object):
         return best_indexes
 
 
-class ExperimentResults(object):
+# pylint: disable=too-few-public-methods
+class ExperimentResults():
     """
     Results Container for an Agent Experiment
     """
-
     def __init__(
-        self, selections, correct_selections, p_correct_selections, opportunity_cost
+        self,
+        selections,
+        correct_selections,
+        p_correct_selections,
+        opportunity_cost
     ):
+        """
+        Initialises the ExperimentResults object with the given results.
+        """
         self.selections = selections
         self.correct_selections = correct_selections
         self.p_correct_selections = p_correct_selections
         self.expected_opportunity_cost = opportunity_cost
 
 
-class Experiment(object):
+class Experiment():
     """
-    Test the power of a given configuration of an agent
-    at correct selection of a max of min
+    Tests the power of a given configuration of an agent to select the best
+    design in an environment based on a specific objective ("max" or "min").
     """
-
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
     def __init__(
         self, env, procedure, best_index=0, objective="max", replications=1000
     ):
+        """
+        Initialises the Experiment object with the given environment, agent,
+        and parameters.
+        """
         self._env = env
         self._agent = procedure
-        self._sim = AgentSimulation(env, agent=procedure, replications=replications)
+        self._sim = AgentSimulation(
+            env, agent=procedure, replications=replications)
         self._best_index = best_index
         self._objective = objective
         self._reps = replications
@@ -83,10 +104,17 @@ class Experiment(object):
         opportunity_cost = self._calculate_exp_opportunity_cost(selections)
 
         return ExperimentResults(
-            selections, correct_selections, p_correct_selections, opportunity_cost
+            selections,
+            correct_selections,
+            p_correct_selections,
+            opportunity_cost
         )
 
     def _calculate_exp_opportunity_cost(self, selections):
+        """
+        Calculates the opportunity cost based on the agent's selections
+        compared to the best design.
+        """
         best_mean = self._env[self._env.best_design]._mu
 
         oc = 0.0
@@ -95,8 +123,24 @@ class Experiment(object):
         return oc / len(selections)
 
 
-class GridExperiment(object):
-    def __init__(self, agent, environment, param_grid, best_index=0, replications=1000):
+class GridExperiment():
+    """
+    Performs grid search search-based experiments by varying the parameters of
+    an agent and executing experiments for each configuration.
+    """
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
+    def __init__(
+            self,
+            agent,
+            environment,
+            param_grid,
+            best_index=0,
+            replications=1000
+    ):
+        """
+        Initialises the GridExperiment with the given agent, environment, and
+        parameter grid.
+        """
         self._agent = agent
         self._env = environment
         self._param_grid = ParameterGrid(param_grid)
@@ -104,21 +148,27 @@ class GridExperiment(object):
         self._best_index = best_index
 
     def fit(self):
+        """
+        Fits the agent to the environment by running experiments for all
+        parameter configurations in the parameter grid. The results are stored
+        in a DataFrame.
+        """
         # create data frame to store results
         num_rows = len(self._param_grid)
         columns = list(self._param_grid[0].keys())
         columns.append("correct_selections")
         columns.append("p_correct_selections")
 
-        df_results = pd.DataFrame(index=np.arange(0, num_rows), columns=columns)
+        df_results = pd.DataFrame(
+            index=np.arange(0, num_rows), columns=columns)
 
         # simulate each of the agent configurations
-        for index in range(len(self._param_grid)):
-            for key in self._param_grid[index].keys():
+        for index, param_dict in enumerate(self._param_grid):
+            for key, value in param_dict.items():
                 # set the agents attribute
-                setattr(self._agent, key, self._param_grid[index][key])
+                setattr(self._agent, key, value)
 
-                df_results.loc[index][key] = self._param_grid[index][key]
+                df_results.loc[index][key] = value
 
             experiment = Experiment(
                 self._env,
@@ -129,7 +179,9 @@ class GridExperiment(object):
 
             results = experiment.execute()
 
-            df_results.loc[index]["correct_selections"] = results.correct_selections
-            df_results.loc[index]["p_correct_selections"] = results.p_correct_selections
+            df_results.loc[index]["correct_selections"] = (
+                results.correct_selections)
+            df_results.loc[index]["p_correct_selections"] = (
+                results.p_correct_selections)
 
         return df_results

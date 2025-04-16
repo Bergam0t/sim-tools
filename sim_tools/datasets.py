@@ -1,14 +1,18 @@
 """
 Datasets module
 
-Contains functions for loading example data
-to demonstrate sim-tools functionality.
+Contains functions for loading example data to demonstrate sim-tools
+functionality.
 """
-import pandas as pd
+
 from pathlib import Path
+
+import pandas as pd
+
 
 FILE_NAME_NSPP_1 = "nspp_example1.csv"
 PATH_NSPP_1 = Path(__file__).parent.joinpath("data", FILE_NAME_NSPP_1)
+
 
 def load_banks_et_al_nspp() -> pd.DataFrame:
     '''

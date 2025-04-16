@@ -6,7 +6,8 @@ for running models.
 import numpy as np
 
 
-class ManualOptimiser(object):
+# pylint: disable=too-many-instance-attributes
+class ManualOptimiser():
     """
     A class to manually run individual and multiple replications
     from competiting simulated designs of a system.
@@ -37,7 +38,8 @@ class ManualOptimiser(object):
         self.allocations = np.zeros(n_designs, np.int32)
 
     def __str__(self):
-        return f"ManualOptimiser(model={self._model.__str__()}, n_designs={self._n_designs}, verbose={self.verbose})"
+        return (f"ManualOptimiser(model={self._model.__str__()}, " +
+                f"n_designs={self._n_designs}, verbose={self.verbose})")
 
     def simulate_designs(self, design_indexes=None, replications=1):
         """
@@ -52,7 +54,7 @@ class ManualOptimiser(object):
         """
 
         if design_indexes is None:
-            design_indexes = [design for design in range(self._n_designs)]
+            design_indexes = list(range(self._n_designs))
 
         for design_index in design_indexes:
             self.simulate_design(design_index, replications)
@@ -66,10 +68,10 @@ class ManualOptimiser(object):
         design_index - int, zero based design index
         replications - int, number of replications to run (default=1)
         """
-        for rep in range(replications):
+        for _ in range(replications):
             self._model.simulate(design_index)
 
-    def feedback(self, *args, **kwargs):
+    def feedback(self, *args):
         """
         Feedback from the simulation model
         Recieves a reward and updates understanding
@@ -81,10 +83,6 @@ class ManualOptimiser(object):
                  0  sender object
                  1. design index
                  2. observation
-
-        *kwards -- dict of keyword arguments:
-                   None expected!
-
         """
         design_index = args[1]
         observation = args[2]
@@ -168,8 +166,8 @@ def gaussian_bandit_sequence(start, end, step=1):
 
 def random_gaussian_model(mean_low, mean_high, var_low, var_high, n_designs):
     """
-    Create a model with n system designs where the mean and variance of the normal
-    distributions are sampled to between the specified tolerances
+    Create a model with n system designs where the mean and variance of the
+    normal distributions are sampled to between the specified tolerances
 
     Parameters:
     -------
@@ -213,7 +211,7 @@ def custom_gaussian_model(mus, sigmas):
     return BanditCasino(bandits)
 
 
-class GaussianBandit(object):
+class GaussianBandit():
     """
     Classic one armed bandit gambling machine.
 
@@ -265,7 +263,10 @@ class GaussianBandit(object):
         self._total_reward = 0
 
 
-class BanditCasino(object):
+class BanditCasino():
+    """
+    Bandit Casino
+    """
     def __init__(self, bandits):
         """
         Casino constructor method
@@ -322,13 +323,18 @@ class BanditCasino(object):
         if self._current_index > len(self._bandits):
             self._current_index = 0
             raise StopIteration
-        else:
-            return self._bandits[self._current_index - 1]
+        return self._bandits[self._current_index - 1]
 
     def register_observer(self, observer):
+        """
+        Registers an observer to receive notifications.
+        """
         self._observers.append(observer)
 
     def notify_observers(self, *args, **kwargs):
+        """
+        Notifies all registered observers with the provided arguments.
+        """
         for observer in self._observers:
             observer.feedback(self, *args, **kwargs)
 
