@@ -504,6 +504,9 @@ class Exponential:
         self.rng = np.random.default_rng(random_seed)
         self.mean = mean
 
+    def __repr__(self):
+        return f"Exponential(mean={self.mean})"
+
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
     ) -> Union[float, NDArray[np.float64]]:
@@ -558,6 +561,9 @@ class Bernoulli:
         """
         self.rng = np.random.default_rng(random_seed)
         self.p = p
+
+    def __repr__(self):
+        return f"Bernoulli(p={self.p})"
 
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
@@ -622,6 +628,11 @@ class Lognormal:
         mu, sigma = self.normal_moments_from_lognormal(mean, stdev**2)
         self.mu = mu
         self.sigma = sigma
+        self.mean = mean
+        self.stdev = stdev
+
+    def __repr__(self):
+        return f"Lognormal(mean={self.mean}, stdev={self.stdev})"
 
     def normal_moments_from_lognormal(
         self, m: float, v: float
@@ -719,6 +730,13 @@ class Normal:
         self.sigma = sigma
         self.minimum = minimum
 
+    def __repr__(self):
+        if self.minimum is None:
+            return f"Normal(mean={self.mean}, sigma={self.sigma})"
+        else:
+            return f"Normal(mean={self.mean}, sigma={self.sigma}, minimum={self.minimum})"
+
+
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
     ) -> Union[float, NDArray[np.float64]]:
@@ -796,6 +814,9 @@ class Uniform:
         self.low = low
         self.high = high
 
+    def __repr__(self):
+        return f"Uniform(low={self.low}, high={self.high})"
+
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
     ) -> Union[float, NDArray[np.float64]]:
@@ -862,6 +883,9 @@ class Triangular:
         self.high = high
         self.mode = mode
 
+    def __repr__(self):
+        return f"Triangular(low={self.low}, mode={self.mode}, high={self.high})"
+
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
     ) -> Union[float, NDArray[np.float64]]:
@@ -908,6 +932,9 @@ class FixedDistribution:
             The constant value that will be returned by sampling.
         """
         self.value = value
+
+    def __repr__(self):
+        return f"FixedDistribution(value={self.value})"
 
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
@@ -960,6 +987,10 @@ class CombinationDistribution:
             The sample method will return the sum of samples from all these distributions.
         """
         self.dists = dists
+
+    def __repr__(self):
+        dist_reprs = [repr(dist) for dist in self.dists]
+        return f"CombinationDistribution({', '.join(dist_reprs)})"
 
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
@@ -1034,6 +1065,11 @@ class ContinuousEmpirical:
         self.lower_bounds = np.asarray(lower_bounds)
         self.upper_bounds = np.asarray(upper_bounds)
         self.cumulative_probs = self.create_cumulative_probs(freq)
+
+    def __repr__(self):
+        lb_repr = str(self.lower_bounds.tolist()) if len(self.lower_bounds) < 4 else f"[{', '.join(str(x) for x in self.lower_bounds[:3])}, ...]"
+        ub_repr = str(self.upper_bounds.tolist()) if len(self.upper_bounds) < 4 else f"[{', '.join(str(x) for x in self.upper_bounds[:3])}, ...]"
+        return f"ContinuousEmpirical(lower_bounds={lb_repr}, upper_bounds={ub_repr}, freq=...)"
 
     def create_cumulative_probs(self, freq: ArrayLike) -> NDArray[np.float64]:
         """
@@ -1170,6 +1206,12 @@ class Erlang:
         # theta also referred to as scale
         self.theta = mean / self.k
 
+    def __repr__(self):
+        if self.location == 0.0:
+            return f"Erlang(mean={self.mean}, stdev={self.stdev})"
+        else:
+            return f"Erlang(mean={self.mean}, stdev={self.stdev}, location={self.location})"
+
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
     ) -> Union[float, NDArray[np.float64]]:
@@ -1253,6 +1295,12 @@ class Weibull:
         self.scale = beta
         self.location = location
 
+    def __repr__(self):
+        if self.location == 0.0:
+            return f"Weibull(alpha={self.shape}, beta={self.scale})"
+        else:
+            return f"Weibull(alpha={self.shape}, beta={self.scale}, location={self.location})"
+
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
     ) -> Union[float, NDArray[np.float64]]:
@@ -1325,6 +1373,12 @@ class Gamma:
         self.alpha = alpha  # shape
         self.beta = beta  # scale
         self.location = location
+
+    def __repr__(self):
+        if self.location == 0.0:
+            return f"Gamma(alpha={self.alpha}, beta={self.beta})"
+        else:
+            return f"Gamma(alpha={self.alpha}, beta={self.beta}, location={self.location})"
 
     def mean(self) -> float:
         """
@@ -1452,6 +1506,12 @@ class Beta:
         self.min = lower_bound
         self.max = upper_bound
 
+    def __repr__(self):
+        if self.min == 0.0 and self.max == 1.0:
+            return f"Beta(alpha1={self.alpha1}, alpha2={self.alpha2})"
+        else:
+            return f"Beta(alpha1={self.alpha1}, alpha2={self.alpha2}, lower_bound={self.min}, upper_bound={self.max})"
+
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
     ) -> Union[float, NDArray[np.float64]]:
@@ -1531,6 +1591,12 @@ class Discrete:
         self.freq = np.asarray(freq)
         self.probabilities = self.freq / self.freq.sum()
 
+    def __repr__(self):
+        values_repr = str(self.values.tolist()) if len(self.values) < 4 else f"[{', '.join(str(x) for x in self.values[:3])}, ...]"
+        freq_repr = str(self.freq.tolist()) if len(self.freq) < 4 else f"[{', '.join(str(x) for x in self.freq[:3])}, ...]"
+        return f"Discrete(values={values_repr}, freq={freq_repr})"
+
+
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
     ) -> Union[Any, NDArray]:
@@ -1585,6 +1651,9 @@ class TruncatedDistribution:
         """
         self.dist = dist_to_truncate
         self.lower_bound = lower_bound
+
+    def __repr__(self):
+        return f"TruncatedDistribution(dist_to_truncate={repr(self.dist)}, lower_bound={self.lower_bound})"
 
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
@@ -1657,6 +1726,10 @@ class RawEmpirical:
         """
         self.rng = np.random.default_rng(random_seed)
         self.values = np.asarray(values)
+
+    def __repr__(self):
+        values_repr = str(self.values.tolist()) if len(self.values) < 4 else f"[{', '.join(str(x) for x in self.values[:3])}, ...]"
+        return f"RawEmpirical(values={values_repr})"
 
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
@@ -1750,6 +1823,9 @@ class PearsonV:
         self.rng = np.random.default_rng(random_seed)
         self.alpha = alpha  # shape
         self.beta = beta  # scale
+
+    def __repr__(self):
+        return f"PearsonV(alpha={self.alpha}, beta={self.beta})"
 
     def mean(self) -> float:
         """
@@ -1885,6 +1961,9 @@ class PearsonVI:
         self.alpha2 = alpha2
         self.beta = beta
 
+    def __repr__(self):
+        return f"PearsonVI(alpha1={self.alpha1}, alpha2={self.alpha2}, beta={self.beta})"
+
     def mean(self) -> float:
         """
         Calculate the mean of the Pearson Type VI distribution.
@@ -2005,6 +2084,12 @@ class ErlangK:
         self.theta = theta
         self.location = location
 
+    def __repr__(self):
+        if self.location == 0.0:
+            return f"ErlangK(k={self.k}, theta={self.theta})"
+        else:
+            return f"ErlangK(k={self.k}, theta={self.theta}, location={self.location})"
+
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
     ) -> Union[float, NDArray[np.float64]]:
@@ -2063,6 +2148,9 @@ class Poisson:
         """
         self.rng = np.random.default_rng(random_seed)
         self.rate = rate
+
+    def __repr__(self):
+        return f"Poisson(rate={self.rate})"
 
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
