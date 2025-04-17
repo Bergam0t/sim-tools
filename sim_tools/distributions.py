@@ -61,6 +61,9 @@ import numpy as np
 from numpy.typing import NDArray, ArrayLike
 from numpy.random import SeedSequence
 
+import inspect
+import json
+
 from typing import (
     Protocol,
     Optional,
@@ -363,6 +366,83 @@ class DistributionRegistry:
 
         else:
             raise TypeError("Configuration must be a list or dictionary")
+    
+    @classmethod
+    def get_template(cls, format="json", indent=2):
+        """
+        Generate a template configuration containing all registered distributions.
+        
+        This helper method creates a template that includes all registered distribution
+        types with appropriate dummy parameters. Users can modify this template and
+        pass it directly to create_batch() to instantiate their distributions.
+        
+        Parameters
+        ----------
+        format : str, default="json"
+            Output format: 'dict' for Python dictionary or 'json' for JSON string
+        indent : int, default=2
+            Indentation for JSON formatting (if format='json')
+            
+        Returns
+        -------
+        Union[Dict, str]
+            Either a dictionary (if format='dict') or a JSON string (if format='json')
+            containing template configurations for all registered distributions
+            
+        Examples
+        --------
+        >>> template = DistributionRegistry.get_template(format='dict')
+        >>> print(template.keys())
+        dict_keys(['Exponential_example', 'Normal_example', 'Uniform_example', ...])
+        
+        >>> template = DistributionRegistry.get_template(format='json')
+        >>> print(template[:70])
+        {
+        "Exponential_example": {
+            "class_name": "Exponential",
+            "params": {
+        """
+        
+        template = {}
+        for dist_name, dist_class in cls._registry.items():
+            # Get the signature of the __init__ method
+            signature = inspect.signature(dist_class.__init__)
+            params = {}
+            
+            # Add parameters (excluding 'self' and 'random_seed')
+            for param_name, param in signature.parameters.items():
+                if param_name not in ['self', 'random_seed']:
+                    # If parameter has a default value and it's not None
+                    if param.default is not param.empty and param.default is not None:
+                        params[param_name] = param.default
+                    else:
+                        # Use appropriate dummy values based on parameter name
+                        if 'mean' in param_name:
+                            params[param_name] = 1.0
+                        elif any(name in param_name for name in ['std', 'scale', 'lambda']):
+                            params[param_name] = 1.0
+                        elif any(name in param_name for name in ['low', 'min']):
+                            params[param_name] = 0.0
+                        elif any(name in param_name for name in ['high', 'max']):
+                            params[param_name] = 10.0
+                        elif 'mode' in param_name:
+                            params[param_name] = 5.0
+                        elif 'shape' in param_name:
+                            params[param_name] = 2.0
+                        else:
+                            # Generic fallback
+                            params[param_name] = 1.0
+                            
+            template[f"{dist_name}_example"] = {
+                "class_name": dist_name,
+                "params": params
+            }
+        
+        if format.lower() == "json":
+            return json.dumps(template, indent=indent)
+        else:
+            return template
+
 
 
 # pylint: disable=too-few-public-methods
