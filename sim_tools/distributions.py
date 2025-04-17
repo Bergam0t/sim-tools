@@ -2174,3 +2174,147 @@ class Poisson:
             - A numpy array of integers with shape determined by size parameter
         """
         return self.rng.poisson(self.rate, size)
+
+
+@DistributionRegistry.register()
+class Hyperexponential:
+    """
+    Hyperexponential distribution implementation.
+    
+    A continuous probability distribution that is a mixture (weighted sum) of
+    exponential distributions. It has a higher coefficient of variation than
+    a single exponential distribution, making it useful for modeling highly
+    variable processes or heavy-tailed phenomena.
+
+    The hyperexponential distribution is useful to model service processes 
+    where customers may require fundamentally different types of service 
+    with varying durations. For example, in a technical support call center, 
+    customers might either:
+
+    1. Have a simple issue (resolved quickly with rate λ₁) with probability p₁
+
+    2. Have a complex issue (requiring longer service with rate λ₂) with probability p₂
+    
+    This class conforms to the Distribution protocol and provides methods to sample
+    from a hyperexponential distribution with specified phase probabilities and rates.
+    """
+    
+    def __init__(
+        self,
+        probs: ArrayLike,
+        rates: ArrayLike,
+        random_seed: Optional[Union[int, SeedSequence]] = None,
+    ):
+        """
+        Initialize a hyperexponential distribution.
+        
+        Parameters
+        ----------
+        probs : ArrayLike
+            The probabilities (weights) of selecting each exponential component.
+            Must sum to 1.0.
+            
+        rates : ArrayLike
+            The rate parameters for each exponential component.
+            Must be positive and same length as probs.
+            
+        random_seed : Optional[Union[int, SeedSequence]], default=None
+            A random seed or SeedSequence to reproduce samples. If None, a unique
+            sample sequence is generated.
+        """
+        self.rng = np.random.default_rng(random_seed)
+        
+        # Convert to numpy arrays
+        self.probs = np.asarray(probs, dtype=float)
+        self.rates = np.asarray(rates, dtype=float)
+        
+        # Validate inputs
+        if len(self.probs) != len(self.rates):
+            raise ValueError("probs and rates must have the same length")
+            
+        if not np.isclose(np.sum(self.probs), 1.0):
+            raise ValueError("probabilities must sum to 1.0")
+            
+        if np.any(self.rates <= 0):
+            raise ValueError("all rates must be positive")
+    
+    def mean(self) -> float:
+        """
+        Calculate the theoretical mean of the distribution.
+        
+        Returns
+        -------
+        float
+            Mean value: sum(p_i / λ_i)
+        """
+        return np.sum(self.probs / self.rates)
+    
+    def variance(self) -> float:
+        """
+        Calculate the theoretical variance of the distribution.
+        
+        Returns
+        -------
+        float
+            Variance value: 2 * sum(p_i / λ_i^2) - [sum(p_i / λ_i)]^2
+        """
+        mean = self.mean()
+        second_moment = 2 * np.sum(self.probs / (self.rates ** 2))
+        return second_moment - mean ** 2
+    
+    def sample(
+        self, size: Optional[Union[int, Tuple[int, ...]]] = None
+    ) -> Union[float, NDArray[np.float64]]:
+        """
+        Generate random samples from the hyperexponential distribution.
+        
+        Parameters
+        ----------
+        size : Optional[Union[int, Tuple[int, ...]]], default=None
+            The number/shape of samples to generate:
+            - If None: returns a single sample as a float
+            - If int: returns a 1-D array with that many samples
+            - If tuple of ints: returns an array with that shape
+            
+        Returns
+        -------
+        Union[float, NDArray[np.float64]]
+            Random samples from the hyperexponential distribution
+        """
+        if size is None:
+            # Choose one of the exponential components based on probs
+            component = self.rng.choice(len(self.probs), p=self.probs)
+            # Generate a sample from the selected exponential distribution
+            return self.rng.exponential(1.0 / self.rates[component])
+        
+        # For multiple samples
+        # Determine total number of samples needed
+        if isinstance(size, int):
+            total_samples = size
+            output_shape = (size,)
+        else:
+            total_samples = np.prod(size)
+            output_shape = size
+        
+        # Choose components for all samples
+        components = self.rng.choice(len(self.probs), size=total_samples, p=self.probs)
+        
+        # Generate samples from corresponding exponential distributions
+        samples = np.zeros(total_samples)
+        for i, component in enumerate(components):
+            samples[i] = self.rng.exponential(1.0 / self.rates[component])
+        
+        # Reshape if needed
+        if isinstance(size, tuple):
+            samples = samples.reshape(output_shape)
+            
+        return samples
+    
+    def __repr__(self):
+        """
+        Return a string representation of the distribution.
+        """
+        probs_repr = str(self.probs.tolist()) if len(self.probs) < 4 else f"[{', '.join(str(p) for p in self.probs[:3])}, ...]"
+        rates_repr = str(self.rates.tolist()) if len(self.rates) < 4 else f"[{', '.join(str(r) for r in self.rates[:3])}, ...]"
+        return f"Hyperexponential(probs={probs_repr}, rates={rates_repr})"
+
