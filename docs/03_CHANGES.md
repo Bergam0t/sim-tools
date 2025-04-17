@@ -5,6 +5,18 @@
 ### Added
 
 * `distributions.DistributionRegistry` - for batch creation of standard distributions from a dictionary or list.  
+* DOCS: `DistributionRegistry` explaination and examples including use of JSON to store configs.
+* `distributions.spawn_seeds` function to support creation of PRNG streams.
+
+### Changed
+
+* `Distribution` changed from abstract base class to `Protocol`.  All inheritance removed from concrete classes. 
+* Added `__repr__()` to all distribution classes.
+* DOCS: improved docstrings for all distribution classes
+
+### Fixed
+
+* `Gamma` fix of the calculation of the mean based on alpha and beta.
 
 ## [v0.8.0](https://github.com/TomMonks/sim-tools/releases/tag/v0.8.0a)
 
