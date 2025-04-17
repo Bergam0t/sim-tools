@@ -13,6 +13,7 @@ Features
 - Independent random number streams for each distribution instance
 - Support for reproducible sampling via random seeds
 - Implementation of distributions not directly available in scipy or numpy
+- Registry system for dynamic creation and configuration of distributions
 
 Distributions
 ------------
@@ -30,6 +31,15 @@ that accept a random_seed parameter support:
 - Integer seeds for basic reproducibility
 - numpy.random.SeedSequence objects for advanced stream management
 - None for auto-generated seeds
+
+Distribution Registry
+--------------------
+The DistributionRegistry provides centralized management for all distribution classes:
+- Register custom distribution classes with the @DistributionRegistry.register() decorator
+- Create distribution instances by name with DistributionRegistry.create()
+- Generate multiple distributions with statistically independent seeds using create_batch()
+- Create configuration templates with get_template() for streamlined setup
+- Support for both dictionary and list-based batch configurations
 
 Examples
 --------
@@ -49,11 +59,26 @@ Using SeedSequence for multiple streams:
 >>> exp_dist = Exponential(mean=5, random_seed=seeds[0])
 >>> uni_dist = Uniform(low=0, high=10, random_seed=seeds[1])
 
+Using the DistributionRegistry:
+>>> from simtools.distributions import DistributionRegistry
+>>> # Create a single distribution
+>>> exp_dist = DistributionRegistry.create("Exponential", mean=5.0)
+>>> 
+>>> # Create multiple distributions with independent seeds
+>>> config = {
+...     "arrivals": {"class_name": "Exponential", "params": {"mean": 5.0}},
+...     "service_times": {"class_name": "Normal", "params": {"mean": 10.0, "sigma": 2.0}}
+... }
+>>> dists = DistributionRegistry.create_batch(config, main_seed=12345)
+>>> arrivals = dists["arrivals"]
+>>> service_times = dists["service_times"]
+
 Notes
 -----
 All distribution parameters follow the conventions described in "Simulation
 Modeling and Analysis" (Law, 2007) where applicable.
 """
+
 
 import math
 
