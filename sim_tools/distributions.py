@@ -63,7 +63,7 @@ Using the DistributionRegistry:
 >>> from simtools.distributions import DistributionRegistry
 >>> # Create a single distribution
 >>> exp_dist = DistributionRegistry.create("Exponential", mean=5.0)
->>> 
+>>>
 >>> # Create multiple distributions with independent seeds
 >>> config = {
 ...     "arrivals": {"class_name": "Exponential", "params": {"mean": 5.0}},
@@ -101,14 +101,18 @@ from typing import (
 )
 
 from sim_tools._validation import (
-    is_positive, # > 0
-    is_non_negative, # >= 0 e.g. for location
-    is_numeric, 
-    is_probability, 
-    validate, 
+    is_positive,  # > 0
+    is_non_negative,  # >= 0 e.g. for location
+    is_numeric,
+    is_probability,
+    is_integer,
+    validate,
     is_ordered_pair,
-    is_ordered_triplet
+    is_ordered_triplet,
+    is_probability_vector,
+    is_positive_array,
 )
+
 
 # pylint: disable=too-few-public-methods
 @runtime_checkable
@@ -400,35 +404,35 @@ class DistributionRegistry:
 
         else:
             raise TypeError("Configuration must be a list or dictionary")
-    
+
     @classmethod
     def get_template(cls, format="json", indent=2):
         """
         Generate a template configuration containing all registered distributions.
-        
+
         This helper method creates a template that includes all registered distribution
         types with appropriate dummy parameters. Users can modify this template and
         pass it directly to create_batch() to instantiate their distributions.
-        
+
         Parameters
         ----------
         format : str, default="json"
             Output format: 'dict' for Python dictionary or 'json' for JSON string
         indent : int, default=2
             Indentation for JSON formatting (if format='json')
-            
+
         Returns
         -------
         Union[Dict, str]
             Either a dictionary (if format='dict') or a JSON string (if format='json')
             containing template configurations for all registered distributions
-            
+
         Examples
         --------
         >>> template = DistributionRegistry.get_template(format='dict')
         >>> print(template.keys())
         dict_keys(['Exponential_example', 'Normal_example', 'Uniform_example', ...])
-        
+
         >>> template = DistributionRegistry.get_template(format='json')
         >>> print(template[:70])
         {
@@ -436,47 +440,56 @@ class DistributionRegistry:
             "class_name": "Exponential",
             "params": {
         """
-        
+
         template = {}
         for dist_name, dist_class in cls._registry.items():
             # Get the signature of the __init__ method
             signature = inspect.signature(dist_class.__init__)
             params = {}
-            
+
             # Add parameters (excluding 'self' and 'random_seed')
             for param_name, param in signature.parameters.items():
-                if param_name not in ['self', 'random_seed']:
+                if param_name not in ["self", "random_seed"]:
                     # If parameter has a default value and it's not None
-                    if param.default is not param.empty and param.default is not None:
+                    if (
+                        param.default is not param.empty
+                        and param.default is not None
+                    ):
                         params[param_name] = param.default
                     else:
                         # Use appropriate dummy values based on parameter name
-                        if 'mean' in param_name:
+                        if "mean" in param_name:
                             params[param_name] = 1.0
-                        elif any(name in param_name for name in ['std', 'scale', 'lambda']):
+                        elif any(
+                            name in param_name
+                            for name in ["std", "scale", "lambda"]
+                        ):
                             params[param_name] = 1.0
-                        elif any(name in param_name for name in ['low', 'min']):
+                        elif any(
+                            name in param_name for name in ["low", "min"]
+                        ):
                             params[param_name] = 0.0
-                        elif any(name in param_name for name in ['high', 'max']):
+                        elif any(
+                            name in param_name for name in ["high", "max"]
+                        ):
                             params[param_name] = 10.0
-                        elif 'mode' in param_name:
+                        elif "mode" in param_name:
                             params[param_name] = 5.0
-                        elif 'shape' in param_name:
+                        elif "shape" in param_name:
                             params[param_name] = 2.0
                         else:
                             # Generic fallback
                             params[param_name] = 1.0
-                            
+
             template[f"{dist_name}_example"] = {
                 "class_name": dist_name,
-                "params": params
+                "params": params,
             }
-        
+
         if format.lower() == "json":
             return json.dumps(template, indent=indent)
         else:
             return template
-
 
 
 # pylint: disable=too-few-public-methods
@@ -755,7 +768,6 @@ class Normal:
         else:
             return f"Normal(mean={self.mean}, sigma={self.sigma}, minimum={self.minimum})"
 
-
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
     ) -> Union[float, NDArray[np.float64]]:
@@ -900,20 +912,22 @@ class Triangular:
             A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
         """
-        
+
         # validation
         for name, value in [("low", low), ("mode", mode), ("high", high)]:
             validate(value, name, is_numeric)
-            
+
         is_ordered_triplet(low, mode, high, middle_name="mode")
-        
+
         self.rng = np.random.default_rng(random_seed)
         self.low = low
         self.high = high
         self.mode = mode
 
     def __repr__(self):
-        return f"Triangular(low={self.low}, mode={self.mode}, high={self.high})"
+        return (
+            f"Triangular(low={self.low}, mode={self.mode}, high={self.high})"
+        )
 
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
@@ -1097,8 +1111,16 @@ class ContinuousEmpirical:
         self.cumulative_probs = self.create_cumulative_probs(freq)
 
     def __repr__(self):
-        lb_repr = str(self.lower_bounds.tolist()) if len(self.lower_bounds) < 4 else f"[{', '.join(str(x) for x in self.lower_bounds[:3])}, ...]"
-        ub_repr = str(self.upper_bounds.tolist()) if len(self.upper_bounds) < 4 else f"[{', '.join(str(x) for x in self.upper_bounds[:3])}, ...]"
+        lb_repr = (
+            str(self.lower_bounds.tolist())
+            if len(self.lower_bounds) < 4
+            else f"[{', '.join(str(x) for x in self.lower_bounds[:3])}, ...]"
+        )
+        ub_repr = (
+            str(self.upper_bounds.tolist())
+            if len(self.upper_bounds) < 4
+            else f"[{', '.join(str(x) for x in self.upper_bounds[:3])}, ...]"
+        )
         return f"ContinuousEmpirical(lower_bounds={lb_repr}, upper_bounds={ub_repr}, freq=...)"
 
     def create_cumulative_probs(self, freq: ArrayLike) -> NDArray[np.float64]:
@@ -1350,13 +1372,14 @@ class Weibull:
         else:
             return f"Weibull(alpha={self.shape}, beta={self.scale}, location={self.location})"
 
+    @property
     def mean(self) -> float:
         """
         Return the theoretical mean of the Weibull distribution.
-        
+
         The formula is: location + scale * Γ(1 + 1/shape)
         where Γ is the gamma function.
-        
+
         Returns
         -------
         float
@@ -1364,13 +1387,14 @@ class Weibull:
         """
         return self.location + self.scale * math.gamma(1 + 1 / self.shape)
 
+    @property
     def variance(self) -> float:
         """
         Return the theoretical variance of the Weibull distribution.
-        
+
         The formula is: scale² * [Γ(1 + 2/shape) - (Γ(1 + 1/shape))²]
         where Γ is the gamma function.
-        
+
         Returns
         -------
         float
@@ -1378,7 +1402,7 @@ class Weibull:
         """
         mean_term = math.gamma(1 + 1 / self.shape)
         variance_term = math.gamma(1 + 2 / self.shape)
-        return (self.scale ** 2) * (variance_term - mean_term ** 2)
+        return (self.scale**2) * (variance_term - mean_term**2)
 
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
@@ -1460,6 +1484,7 @@ class Gamma:
         else:
             return f"Gamma(alpha={self.alpha}, beta={self.beta}, location={self.location})"
 
+    @property
     def mean(self) -> float:
         """
         Calculate the theoretical mean of the distribution.
@@ -1471,6 +1496,7 @@ class Gamma:
         """
         return self.alpha * self.beta
 
+    @property
     def variance(self) -> float:
         """
         Calculate the theoretical variance of the distribution.
@@ -1584,14 +1610,14 @@ class Beta:
         # 1. Validate shape parameters
         validate(alpha1, "alpha1", is_numeric, is_positive)
         validate(alpha2, "alpha2", is_numeric, is_positive)
-        
+
         # 2. Validate bounds
         validate(lower_bound, "lower_bound", is_numeric)
         validate(upper_bound, "upper_bound", is_numeric)
-        
+
         # 3. Validate relationship between bounds
         is_ordered_pair(lower_bound, upper_bound, "lower_bound", "upper_bound")
-        
+
         self.rng = np.random.default_rng(random_seed)
         self.alpha1 = alpha1
         self.alpha2 = alpha2
@@ -1670,24 +1696,39 @@ class Discrete:
 
         Raises
         ------
+        TypeError
+            If values or freq are not positive arrays
         ValueError
             If values and freq have different lengths.
         """
-        if len(values) != len(freq):
+
+        # convert to array first
+        self.values = np.asarray(values)
+        self.freq = np.asarray(freq)
+
+        validate(self.values, "values", is_positive_array)
+        validate(self.freq, "freq", is_positive_array)
+
+        if len(self.values) != len(self.freq):
             raise ValueError(
                 "values and freq arguments must be of equal length"
             )
 
         self.rng = np.random.default_rng(random_seed)
-        self.values = np.asarray(values)
-        self.freq = np.asarray(freq)
         self.probabilities = self.freq / self.freq.sum()
 
     def __repr__(self):
-        values_repr = str(self.values.tolist()) if len(self.values) < 4 else f"[{', '.join(str(x) for x in self.values[:3])}, ...]"
-        freq_repr = str(self.freq.tolist()) if len(self.freq) < 4 else f"[{', '.join(str(x) for x in self.freq[:3])}, ...]"
+        values_repr = (
+            str(self.values.tolist())
+            if len(self.values) < 4
+            else f"[{', '.join(str(x) for x in self.values[:3])}, ...]"
+        )
+        freq_repr = (
+            str(self.freq.tolist())
+            if len(self.freq) < 4
+            else f"[{', '.join(str(x) for x in self.freq[:3])}, ...]"
+        )
         return f"Discrete(values={values_repr}, freq={freq_repr})"
-
 
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
@@ -1741,6 +1782,7 @@ class TruncatedDistribution:
         lower_bound : float
             Truncation point. Any samples below this value will be set to this value.
         """
+        validate(lower_bound, is_numeric)
         self.dist = dist_to_truncate
         self.lower_bound = lower_bound
 
@@ -1820,7 +1862,11 @@ class RawEmpirical:
         self.values = np.asarray(values)
 
     def __repr__(self):
-        values_repr = str(self.values.tolist()) if len(self.values) < 4 else f"[{', '.join(str(x) for x in self.values[:3])}, ...]"
+        values_repr = (
+            str(self.values.tolist())
+            if len(self.values) < 4
+            else f"[{', '.join(str(x) for x in self.values[:3])}, ...]"
+        )
         return f"RawEmpirical(values={values_repr})"
 
     def sample(
@@ -1909,8 +1955,8 @@ class PearsonV:
         ValueError
             If alpha or beta are not positive.
         """
-        if alpha <= 0 or beta <= 0:
-            raise ValueError("alpha and beta must be > 0")
+        validate(alpha, "alpha", is_numeric, is_positive)
+        validate(beta, "beta", is_numeric, is_positive)
 
         self.rng = np.random.default_rng(random_seed)
         self.alpha = alpha  # shape
@@ -1919,6 +1965,7 @@ class PearsonV:
     def __repr__(self):
         return f"PearsonV(alpha={self.alpha}, beta={self.beta})"
 
+    @property
     def mean(self) -> float:
         """
         Calculate the mean of the Pearson Type V distribution.
@@ -1938,7 +1985,8 @@ class PearsonV:
         msg = "Cannot directly compute mean when alpha <= 1.0"
         raise ValueError(msg)
 
-    def var(self) -> float:
+    @property
+    def variance(self) -> float:
         """
         Calculate the variance of the Pearson Type V distribution.
 
@@ -2045,8 +2093,9 @@ class PearsonVI:
         ValueError
             If any of the parameters are not positive.
         """
-        if alpha1 <= 0 or alpha2 <= 0 or beta <= 0:
-            raise ValueError("alpha1, alpha2, and beta must all be > 0")
+        validate(alpha1, "alpha1", is_numeric, is_positive)
+        validate(alpha1, "alpha2", is_numeric, is_positive)
+        validate(beta, "beta", is_numeric, is_positive)
 
         self.rng = np.random.default_rng(random_seed)
         self.alpha1 = alpha1
@@ -2056,6 +2105,7 @@ class PearsonVI:
     def __repr__(self):
         return f"PearsonVI(alpha1={self.alpha1}, alpha2={self.alpha2}, beta={self.beta})"
 
+    @property
     def mean(self) -> float:
         """
         Calculate the mean of the Pearson Type VI distribution.
@@ -2074,7 +2124,8 @@ class PearsonVI:
             return (self.beta * self.alpha1) / (self.alpha2 - 1)
         raise ValueError("Cannot compute mean when alpha2 <= 1.0")
 
-    def var(self) -> float:
+    @property
+    def variance(self) -> float:
         """
         Calculate the variance of the Pearson Type VI distribution.
 
@@ -2171,6 +2222,10 @@ class ErlangK:
         if k <= 0:
             raise ValueError("k must be > 0")
 
+        validate(k, "k", is_numeric, is_integer)
+        validate(theta, "theta", is_numeric, is_positive)
+        validate(location, "location", is_numeric, is_non_negative)
+
         self.rng = np.random.default_rng(random_seed)
         self.k = k
         self.theta = theta
@@ -2181,6 +2236,16 @@ class ErlangK:
             return f"ErlangK(k={self.k}, theta={self.theta})"
         else:
             return f"ErlangK(k={self.k}, theta={self.theta}, location={self.location})"
+
+    @property
+    def mean(self) -> float:
+        """Theoretical mean of the Erlang-K distribution."""
+        return self.k * self.theta + self.location
+
+    @property
+    def variance(self) -> float:
+        """Theoretical variance of the Erlang-K distribution."""
+        return self.k * (self.theta**2)
 
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
@@ -2238,6 +2303,7 @@ class Poisson:
             A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
         """
+        validate(rate, "rate", is_numeric, is_positive)
         self.rng = np.random.default_rng(random_seed)
         self.rate = rate
 
@@ -2272,25 +2338,25 @@ class Poisson:
 class Hyperexponential:
     """
     Hyperexponential distribution implementation.
-    
+
     A continuous probability distribution that is a mixture (weighted sum) of
     exponential distributions. It has a higher coefficient of variation than
     a single exponential distribution, making it useful for modeling highly
     variable processes or heavy-tailed phenomena.
 
-    The hyperexponential distribution is useful to model service processes 
-    where customers may require fundamentally different types of service 
-    with varying durations. For example, in a technical support call center, 
+    The hyperexponential distribution is useful to model service processes
+    where customers may require fundamentally different types of service
+    with varying durations. For example, in a technical support call center,
     customers might either:
 
     1. Have a simple issue (resolved quickly with rate λ₁) with probability p₁
 
     2. Have a complex issue (requiring longer service with rate λ₂) with probability p₂
-    
+
     This class conforms to the Distribution protocol and provides methods to sample
     from a hyperexponential distribution with specified phase probabilities and rates.
     """
-    
+
     def __init__(
         self,
         probs: ArrayLike,
@@ -2299,67 +2365,82 @@ class Hyperexponential:
     ):
         """
         Initialize a hyperexponential distribution.
-        
+
         Parameters
         ----------
         probs : ArrayLike
             The probabilities (weights) of selecting each exponential component.
             Must sum to 1.0.
-            
+
         rates : ArrayLike
             The rate parameters for each exponential component.
             Must be positive and same length as probs.
-            
+
         random_seed : Optional[Union[int, SeedSequence]], default=None
             A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
         """
         self.rng = np.random.default_rng(random_seed)
-        
+
         # Convert to numpy arrays
         self.probs = np.asarray(probs, dtype=float)
         self.rates = np.asarray(rates, dtype=float)
-        
+
         # Validate inputs
+        validate(self.probs, "probs", is_probability_vector)
+        validate(self.rates, "rates", is_positive_array)
+
         if len(self.probs) != len(self.rates):
             raise ValueError("probs and rates must have the same length")
-            
-        if not np.isclose(np.sum(self.probs), 1.0):
-            raise ValueError("probabilities must sum to 1.0")
-            
-        if np.any(self.rates <= 0):
-            raise ValueError("all rates must be positive")
-    
+
+    def __repr__(self):
+        """
+        Return a string representation of the distribution.
+        """
+        probs_repr = (
+            str(self.probs.tolist())
+            if len(self.probs) < 4
+            else f"[{', '.join(str(p) for p in self.probs[:3])}, ...]"
+        )
+        rates_repr = (
+            str(self.rates.tolist())
+            if len(self.rates) < 4
+            else f"[{', '.join(str(r) for r in self.rates[:3])}, ...]"
+        )
+        return f"Hyperexponential(probs={probs_repr}, rates={rates_repr})"
+
+    @property
     def mean(self) -> float:
         """
         Calculate the theoretical mean of the distribution.
-        
+
         Returns
         -------
         float
             Mean value: sum(p_i / λ_i)
         """
         return np.sum(self.probs / self.rates)
-    
+
+    @property
     def variance(self) -> float:
         """
         Calculate the theoretical variance of the distribution.
-        
+
         Returns
         -------
         float
             Variance value: 2 * sum(p_i / λ_i^2) - [sum(p_i / λ_i)]^2
         """
         mean = self.mean()
-        second_moment = 2 * np.sum(self.probs / (self.rates ** 2))
-        return second_moment - mean ** 2
-    
+        second_moment = 2 * np.sum(self.probs / (self.rates**2))
+        return second_moment - mean**2
+
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
     ) -> Union[float, NDArray[np.float64]]:
         """
         Generate random samples from the hyperexponential distribution.
-        
+
         Parameters
         ----------
         size : Optional[Union[int, Tuple[int, ...]]], default=None
@@ -2367,7 +2448,7 @@ class Hyperexponential:
             - If None: returns a single sample as a float
             - If int: returns a 1-D array with that many samples
             - If tuple of ints: returns an array with that shape
-            
+
         Returns
         -------
         Union[float, NDArray[np.float64]]
@@ -2378,7 +2459,7 @@ class Hyperexponential:
             component = self.rng.choice(len(self.probs), p=self.probs)
             # Generate a sample from the selected exponential distribution
             return self.rng.exponential(1.0 / self.rates[component])
-        
+
         # For multiple samples
         # Determine total number of samples needed
         if isinstance(size, int):
@@ -2387,26 +2468,19 @@ class Hyperexponential:
         else:
             total_samples = np.prod(size)
             output_shape = size
-        
+
         # Choose components for all samples
-        components = self.rng.choice(len(self.probs), size=total_samples, p=self.probs)
-        
+        components = self.rng.choice(
+            len(self.probs), size=total_samples, p=self.probs
+        )
+
         # Generate samples from corresponding exponential distributions
         samples = np.zeros(total_samples)
         for i, component in enumerate(components):
             samples[i] = self.rng.exponential(1.0 / self.rates[component])
-        
+
         # Reshape if needed
         if isinstance(size, tuple):
             samples = samples.reshape(output_shape)
-            
-        return samples
-    
-    def __repr__(self):
-        """
-        Return a string representation of the distribution.
-        """
-        probs_repr = str(self.probs.tolist()) if len(self.probs) < 4 else f"[{', '.join(str(p) for p in self.probs[:3])}, ...]"
-        rates_repr = str(self.rates.tolist()) if len(self.rates) < 4 else f"[{', '.join(str(r) for r in self.rates[:3])}, ...]"
-        return f"Hyperexponential(probs={probs_repr}, rates={rates_repr})"
 
+        return samples
