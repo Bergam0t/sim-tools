@@ -100,6 +100,15 @@ from typing import (
     runtime_checkable,
 )
 
+from sim_tools._validation import (
+    is_positive, # > 0
+    is_non_negative, # >= 0 e.g. for location
+    is_numeric, 
+    is_probability, 
+    validate, 
+    is_ordered_pair,
+    is_ordered_triplet
+)
 
 # pylint: disable=too-few-public-methods
 @runtime_checkable
@@ -501,6 +510,7 @@ class Exponential:
             A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
         """
+        validate(mean, "mean", is_numeric, is_positive)
         self.rng = np.random.default_rng(random_seed)
         self.mean = mean
 
@@ -559,6 +569,7 @@ class Bernoulli:
             A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
         """
+        validate(p, "p", is_numeric, is_probability)
         self.rng = np.random.default_rng(random_seed)
         self.p = p
 
@@ -624,6 +635,8 @@ class Lognormal:
             A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
         """
+        validate(mean, "mean", is_numeric, is_positive)
+        validate(stdev, "stdev", is_numeric, is_positive)
         self.rng = np.random.default_rng(random_seed)
         mu, sigma = self.normal_moments_from_lognormal(mean, stdev**2)
         self.mu = mu
@@ -725,6 +738,12 @@ class Normal:
             A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
         """
+        validate(mean, "mean", is_numeric)
+        validate(sigma, "sigma", is_numeric, is_positive)
+
+        if minimum is not None:
+            validate(minimum, "minimum", is_numeric)
+
         self.rng = np.random.default_rng(seed=random_seed)
         self.mean = mean
         self.sigma = sigma
@@ -810,6 +829,9 @@ class Uniform:
             A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
         """
+        validate(low, "low", is_numeric)
+        validate(high, "high", is_numeric)
+        is_ordered_pair(low, high)
         self.rng = np.random.default_rng(random_seed)
         self.low = low
         self.high = high
@@ -878,6 +900,13 @@ class Triangular:
             A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
         """
+        
+        # validation
+        for name, value in [("low", low), ("mode", mode), ("high", high)]:
+            validate(value, name, is_numeric)
+            
+        is_ordered_triplet(low, mode, high, middle_name="mode")
+        
         self.rng = np.random.default_rng(random_seed)
         self.low = low
         self.high = high
@@ -931,6 +960,7 @@ class FixedDistribution:
         value : float
             The constant value that will be returned by sampling.
         """
+        validate(value, "value", is_numeric)
         self.value = value
 
     def __repr__(self):
@@ -1195,6 +1225,11 @@ class Erlang:
             A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
         """
+        for name, value in [("mean", mean), ("stdev", stdev)]:
+            validate(value, name, is_numeric, is_positive)
+
+        validate(location, "location", is_numeric, is_non_negative)
+
         self.rng = np.random.default_rng(random_seed)
         self.mean = mean
         self.stdev = stdev
@@ -1246,6 +1281,19 @@ class Weibull:
 
     This implementation also includes a third parameter "location" (default = 0)
     to shift the distribution if a lower bound is needed.
+
+    The probability density function (PDF) is:
+    f(x) = (α/β) * ((x-location)/β)^(α-1) * exp(-((x-location)/β)^α)
+    for x ≥ location, where α is the shape parameter and β is the scale parameter.
+
+    The samples are generated using:
+    X = scale × (-ln(U))^(1/shape) + location
+    where U is a uniform random number between 0 and 1.
+
+    The Weibull distribution reduces to:
+    - Exponential distribution when shape=1
+    - Rayleigh distribution when shape=2
+    - Approximately Normal distribution when shape≈3.4
     """
 
     def __init__(
@@ -1287,8 +1335,9 @@ class Weibull:
         It's recommended to verify the mean and variance of samples match expectations.
         """
 
-        if alpha <= 0 or beta <= 0:
-            raise ValueError("alpha and beta must be > 0")
+        validate(alpha, "alpha", is_numeric, is_positive)
+        validate(beta, "beta", is_numeric, is_positive)
+        validate(location, "location", is_numeric, is_non_negative)
 
         self.rng = np.random.default_rng(random_seed)
         self.shape = alpha
@@ -1300,6 +1349,36 @@ class Weibull:
             return f"Weibull(alpha={self.shape}, beta={self.scale})"
         else:
             return f"Weibull(alpha={self.shape}, beta={self.scale}, location={self.location})"
+
+    def mean(self) -> float:
+        """
+        Return the theoretical mean of the Weibull distribution.
+        
+        The formula is: location + scale * Γ(1 + 1/shape)
+        where Γ is the gamma function.
+        
+        Returns
+        -------
+        float
+            The theoretical mean value of the distribution.
+        """
+        return self.location + self.scale * math.gamma(1 + 1 / self.shape)
+
+    def variance(self) -> float:
+        """
+        Return the theoretical variance of the Weibull distribution.
+        
+        The formula is: scale² * [Γ(1 + 2/shape) - (Γ(1 + 1/shape))²]
+        where Γ is the gamma function.
+        
+        Returns
+        -------
+        float
+            The theoretical variance of the distribution.
+        """
+        mean_term = math.gamma(1 + 1 / self.shape)
+        variance_term = math.gamma(1 + 2 / self.shape)
+        return (self.scale ** 2) * (variance_term - mean_term ** 2)
 
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
@@ -1366,8 +1445,9 @@ class Gamma:
         ValueError
             If alpha or beta are not positive.
         """
-        if alpha <= 0 or beta <= 0:
-            raise ValueError("alpha and beta must be > 0")
+        validate(alpha, "alpha", is_numeric, is_positive)
+        validate(beta, "beta", is_numeric, is_positive)
+        validate(location, "location", is_numeric, is_non_negative)
 
         self.rng = np.random.default_rng(random_seed)
         self.alpha = alpha  # shape
@@ -1500,6 +1580,18 @@ class Beta:
             A random seed or SeedSequence to reproduce samples. If None, a unique
             sample sequence is generated.
         """
+
+        # 1. Validate shape parameters
+        validate(alpha1, "alpha1", is_numeric, is_positive)
+        validate(alpha2, "alpha2", is_numeric, is_positive)
+        
+        # 2. Validate bounds
+        validate(lower_bound, "lower_bound", is_numeric)
+        validate(upper_bound, "upper_bound", is_numeric)
+        
+        # 3. Validate relationship between bounds
+        is_ordered_pair(lower_bound, upper_bound, "lower_bound", "upper_bound")
+        
         self.rng = np.random.default_rng(random_seed)
         self.alpha1 = alpha1
         self.alpha2 = alpha2
