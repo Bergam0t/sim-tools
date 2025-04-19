@@ -36,11 +36,11 @@ def test_distribution_sample_type(dist_class, args, expected_type):
     assert isinstance(d.sample(), expected_type)
 
 
-def test_continuous_empirical():
+def test_grouped_continuous_empirical():
     """
-    Check that the ContinuousEmpirical `sample` method returns a float.
+    Check that the GroupedContinuousEmpirical `sample` method returns a float.
     """
-    dist = dists.ContinuousEmpirical(
+    dist = dists.GroupedContinuousEmpirical(
         lower_bounds=[0, 5, 10, 15, 30, 45, 60, 120, 180, 240, 480],
         upper_bounds=[5, 10, 15, 30, 45, 60, 120, 180, 240, 480, 2880],
         freq=[34, 4, 8, 13, 15, 13, 19, 13, 9, 12, 73],
@@ -92,7 +92,7 @@ def test_continous_empirical_length():
     Check that ContinuousEmpirical `sample` method returns the expected number
     of samples.
     """
-    dist = dists.ContinuousEmpirical(
+    dist = dists.GroupedContinuousEmpirical(
         lower_bounds=[0, 5, 10, 15, 30, 45, 60, 120, 180, 240, 480],
         upper_bounds=[5, 10, 15, 30, 45, 60, 120, 180, 240, 480, 2880],
         freq=[34, 4, 8, 13, 15, 13, 19, 13, 9, 12, 73],

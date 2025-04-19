@@ -1068,9 +1068,9 @@ class CombinationDistribution:
 
 
 @DistributionRegistry.register()
-class ContinuousEmpirical:
+class GroupedContinuousEmpirical:
     """
-    Continuous Empirical Distribution implementation.
+    Continuous Empirical Distribution for Grouped Data implementation.
 
     A distribution that performs linear interpolation between upper and lower
     bounds of a discrete distribution. Useful for modeling empirical data with

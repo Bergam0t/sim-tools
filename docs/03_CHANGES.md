@@ -17,6 +17,7 @@
 ### Fixed
 
 * `Gamma` fix of the calculation of the mean based on alpha and beta.
+* `ContinuousEmpirical`: silent bug when `u` selects the first group.  Interpolation did not work correctly and sampled out of range. This now been handled by logic pre-sample.
 
 ## [v0.8.0](https://github.com/TomMonks/sim-tools/releases/tag/v0.8.0a)
 
