@@ -1376,6 +1376,271 @@ class RawContinuousEmpirical:
         if isinstance(size, tuple):
             result = result.reshape(size)
         return result
+    
+    def plot_ecdf(self, title="Empirical Cumulative Distribution Function", 
+              xlabel="Value", ylabel="Probability", 
+              line_color='rgb(0, 116, 217)', show_markers=True,
+              width=800, height=500):
+        """
+        Plot the Empirical Cumulative Distribution Function (ECDF) using Plotly.
+        
+        Creates a piecewise linear plot connecting each point in the ECDF with
+        straight lines, consistent with the linear interpolation this class uses.
+        
+        Parameters
+        ----------
+        title : str, default="Empirical Cumulative Distribution Function"
+            Title of the plot.
+        xlabel : str, default="Value"
+            Label for the x-axis.
+        ylabel : str, default="Probability"
+            Label for the y-axis.
+        line_color : str, default='rgb(0, 116, 217)'
+            Color of the line in the plot.
+        show_markers : bool, default=True
+            Whether to show markers at each data point.
+        width : int, default=800
+            Width of the plot in pixels.
+        height : int, default=500
+            Height of the plot in pixels.
+            
+        Returns
+        -------
+        plotly.graph_objects.Figure
+            A Plotly figure object that can be further customized or displayed.
+        
+        Examples
+        --------
+        >>> import numpy as np
+        >>> data = np.random.normal(0, 1, 100)
+        >>> dist = RawContinuousEmpirical(data)
+        >>> fig = dist.plot_ecdf()
+        >>> fig.show()
+        """
+        try:
+            import plotly.graph_objects as go
+        except ImportError:
+            raise ImportError("Plotly is required for plotting. Please install it with 'pip install plotly'.")
+        
+        # Create figure
+        fig = go.Figure()
+        
+        # Add the ECDF trace with straight lines between points
+        mode = 'lines+markers' if show_markers else 'lines'
+        fig.add_trace(
+            go.Scatter(
+                x=self.data,
+                y=self.probabilities,
+                mode=mode,
+                line=dict(color=line_color),
+                name='ECDF'
+            )
+        )
+        
+        # Update layout
+        fig.update_layout(
+            title=title,
+            xaxis_title=xlabel,
+            yaxis_title=ylabel,
+            width=width,
+            height=height
+        )
+        
+        return fig
+    
+    def plot_ecdf_with_sampling(self, title="Empirical Cumulative Distribution Function with Sampling", 
+                            xlabel="Value", ylabel="Probability", 
+                            line_color='rgb(0, 116, 217)', show_markers=True,
+                            width=900, height=600, u_steps=20):
+        """
+        Plot the ECDF with an interactive sampling demonstration using a slider.
+        
+        This visualization shows how sampling from the empirical distribution works by:
+        1. Allowing the user to select a U value between 0 and 1 using a slider
+        2. Drawing a horizontal line from y-axis at height U to the ECDF
+        3. Drawing a vertical line from that intersection to the x-axis
+        4. Displaying the resulting sampled X value
+        
+        Parameters
+        ----------
+        title : str, default="Empirical Cumulative Distribution Function with Sampling"
+            Title of the plot.
+        xlabel : str, default="Value"
+            Label for the x-axis.
+        ylabel : str, default="Probability"
+            Label for the y-axis.
+        line_color : str, default='rgb(0, 116, 217)'
+            Color of the line in the plot.
+        show_markers : bool, default=True
+            Whether to show markers at each data point.
+        width : int, default=900
+            Height of the plot in pixels.
+        height : int, default=600
+            Width of the plot in pixels.
+        u_steps : int, default=20
+            Number of steps in the U slider.
+            
+        Returns
+        -------
+        plotly.graph_objects.Figure
+            A Plotly figure object with a slider to demonstrate sampling.
+        """
+        try:
+            import plotly.graph_objects as go
+            import numpy as np
+        except ImportError:
+            raise ImportError("Plotly is required for plotting. Please install it with 'pip install plotly'.")
+        
+        # Create figure
+        fig = go.Figure()
+        
+        # Function to sample from the distribution given a U value
+        def sample_at_u(u):
+            # Find where u would be inserted in the probabilities array
+            idx = np.searchsorted(self.probabilities, u)
+            
+            if idx == 0:
+                # If u is smaller than the smallest probability, return the smallest data point
+                return self.data[0]
+            elif idx >= len(self.probabilities):
+                # If u is larger than the largest probability, return the largest data point
+                return self.data[-1]
+            else:
+                # Linear interpolation between adjacent points in the ECDF
+                x1, x2 = self.data[idx-1], self.data[idx]
+                y1, y2 = self.probabilities[idx-1], self.probabilities[idx]
+                
+                # Interpolate between the two points
+                proportion = (u - y1) / (y2 - y1) if y2 > y1 else 0
+                sampled_value = x1 + proportion * (x2 - x1)
+                return sampled_value
+        
+        # Generate u values for the slider
+        u_values = np.linspace(0.01, 0.99, u_steps)
+        
+        # Middle index for starting position
+        mid_idx = u_steps // 2
+        
+        # Add traces for each slider position
+        for i, u in enumerate(u_values):
+            x = sample_at_u(u)
+            visible = (i == mid_idx)  # Only middle trace is visible initially
+            
+            # ECDF trace
+            mode = 'lines+markers' if show_markers else 'lines'
+            fig.add_trace(
+                go.Scatter(
+                    x=self.data,
+                    y=self.probabilities,
+                    mode=mode,
+                    line=dict(color=line_color, width=2),
+                    name='ECDF',
+                    visible=visible,
+                    showlegend=(i == 0)  # Only show in legend once
+                )
+            )
+            
+            # Horizontal line (U value)
+            fig.add_trace(
+                go.Scatter(
+                    x=[0, x],
+                    y=[u, u],
+                    mode='lines',
+                    line=dict(color='red', width=2, dash='dash'),
+                    name='U value',
+                    visible=visible,
+                    showlegend=(i == 0)  # Only show in legend once
+                )
+            )
+            
+            # Vertical line (sampled X)
+            fig.add_trace(
+                go.Scatter(
+                    x=[x, x],
+                    y=[u, 0],
+                    mode='lines',
+                    line=dict(color='green', width=2, dash='dash'),
+                    name='Sampled X',
+                    visible=visible,
+                    showlegend=(i == 0)  # Only show in legend once
+                )
+            )
+            
+            # Point at the intersection
+            fig.add_trace(
+                go.Scatter(
+                    x=[x],
+                    y=[u],
+                    mode='markers',
+                    marker=dict(color='purple', size=8),
+                    name='Intersection',
+                    visible=visible,
+                    showlegend=(i == 0)  # Only show in legend once
+                )
+            )
+        
+        # Create slider steps
+        steps = []
+        for i, u in enumerate(u_values):
+            x = sample_at_u(u)
+            
+            step = dict(
+                method="update",
+                args=[
+                    {"visible": [False] * len(fig.data)},  # Hide all traces
+                    {"title": f"{title}<br>U = {u:.2f}, X = {x:.3f}"}  # Update title
+                ],
+                label=f"{u:.2f}"
+            )
+            
+            # Show only traces for this U value
+            for j in range(4):  # 4 traces per step
+                step["args"][0]["visible"][i * 4 + j] = True
+            
+            steps.append(step)
+        
+        # Create slider
+        sliders = [dict(
+            active=mid_idx,  # Start in the middle
+            currentvalue={"prefix": "U = ", "font": {"size": 16}},
+            pad={"t": 50},
+            steps=steps
+        )]
+        
+        # Set initial title
+        initial_u = u_values[mid_idx]
+        initial_x = sample_at_u(initial_u)
+        
+        # Update layout
+        fig.update_layout(
+            title=f"{title}<br>U = {initial_u:.2f}, X = {initial_x:.3f}",
+            xaxis_title=xlabel,
+            yaxis_title=ylabel,
+            width=width,
+            height=height,
+            sliders=sliders,
+            showlegend=True,
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
+            )
+        )
+        
+        # Set axis ranges with some padding
+        data_min = min(self.data)
+        data_max = max(self.data)
+        x_range_min = data_min - (data_max - data_min) * 0.1
+        x_range_max = data_max + (data_max - data_min) * 0.1
+        
+        fig.update_xaxes(range=[0, x_range_max])  # Start at 0 for better visibility
+        fig.update_yaxes(range=[-0.05, 1.05])
+        
+        return fig
+
+
 
 
 

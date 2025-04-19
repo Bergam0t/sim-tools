@@ -27,7 +27,7 @@ SEED_1 = 42
     (dists.PearsonV, (1.2, 2.8), float),
     (dists.PearsonVI, (1.2, 1.2, 2.8), float),
     (dists.Poisson, (5.5,), int),
-    (dists.DiscreteEmpirical, ([1, 2, 3], [95, 3, 2]), int)
+    (dists.DiscreteEmpirical, ([1, 2, 3], [95, 3, 2]), int),
 ])
 def test_distribution_sample_type(dist_class, args, expected_type):
     """
