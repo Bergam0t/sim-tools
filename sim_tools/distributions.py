@@ -1273,14 +1273,21 @@ class GroupedContinuousEmpirical:
 @DistributionRegistry.register()
 class RawContinuousEmpirical:
     """
-    Continuous Empirical Distribution for Raw Data implementation.
+    Continuous Empirical Distribution for Raw Data using Law and Kelton's method.
 
-    A distribution that performs linear interpolation between points of an
-    empirical cumulative distribution function (ECDF) derived from raw data.
-    Useful for modeling empirical data with a continuous approximation.
+    A distribution that performs linear interpolation between data points according to 
+    the algorithm described in Law & Kelton's "Simulation Modeling and Analysis". The 
+    implementation follows a two-step approach:
 
-    Maximum and minimun values of the distribution are defined by the data.
+    1. Generate U ~ Uniform(0, 1), calculate P = (n-1)U, and I = int(P) + 1
+    2. Return X_I + (P-I)(X_{I+1} - X_I)
+
+    This approach ensures proper weighting across intervals and is suitable for both
+    Monte Carlo and discrete-event simulation applications.
+
+    Maximum and minimum values of the distribution are defined by the data.
     """
+
 
     def __init__(
         self,
@@ -1336,47 +1343,48 @@ class RawContinuousEmpirical:
         Union[float, NDArray[np.float64]]
             Random samples from the continuous empirical distribution
         """
+        U = self.rng.random(size)
+        n = len(self.data)
+        P = (n - 1) * U
+        
+
         if size is None:
-            size = 1
+            # single sample
 
-        # Handle the case where size is a tuple - convert to total number of samples
-        total_samples = size if isinstance(size, int) else np.prod(size)
+            I = int(P) + 1
 
-        samples = []
-        for _ in range(total_samples):
-            # Sample a value u from the uniform(0, 1) distribution
-            u = self.rng.random()
-
-            # Find where u would be inserted in the probabilities array
-            idx = np.searchsorted(self.probabilities, u)
+            # Handle edge case when I is the last index
+            if I == n - 1:
+                # return maximum value
+                return self.data[-1]
             
-            if idx == 0:
-                # If u is smaller than the smallest probability, return the smallest data point
-                continuous_value = self.data[0]
-            elif idx >= len(self.probabilities):
-                # If u is larger than the largest probability, return the largest data point
-                continuous_value = self.data[-1]
-            else:
-                # Linear interpolation between adjacent points in the ECDF
-                x1, x2 = self.data[idx-1], self.data[idx]
-                y1, y2 = self.probabilities[idx-1], self.probabilities[idx]
+            frac = P - I
+            lower = self.data[I]
+            upper = self.data[I + 1]
+            return max(lower + frac * (upper - lower), self.data[0])
+        else:
+            I = P.astype(int) + 1
+            # array opeations
+            mask = (I == n - 1)
+            result = np.empty_like(P, dtype=float)
+        
+            # Handle edge cases where I equals n-1
+            if np.any(mask):
+                result[mask] = self.data[-1]
                 
-                # Interpolate between the two points
-                proportion = (u - y1) / (y2 - y1) if y2 > y1 else 0
-                continuous_value = x1 + proportion * (x2 - x1)
+            # Process normal cases with interpolation
+            if np.any(~mask):
+                valid_I = I[~mask]
+                valid_P = P[~mask]
+                frac = valid_P - valid_I
+                lower = self.data[valid_I]
+                upper = self.data[valid_I + 1]
+                result[~mask] = lower + frac * (upper - lower)
+                
+            # return clipped to lower value
+            return result.clip(min=self.data[1])
 
-            samples.append(continuous_value)
-
-        if total_samples == 1:
-            # Return as python float instead of np.float64
-            return float(samples[0])
-
-        result = np.asarray(samples)
-        # Reshape if size was a tuple
-        if isinstance(size, tuple):
-            result = result.reshape(size)
-        return result
-    
+            
     def plot_ecdf(self, title="Empirical Cumulative Distribution Function", 
               xlabel="Value", ylabel="Probability", 
               line_color='rgb(0, 116, 217)', show_markers=True,
@@ -1496,24 +1504,20 @@ class RawContinuousEmpirical:
         
         # Function to sample from the distribution given a U value
         def sample_at_u(u):
-            # Find where u would be inserted in the probabilities array
-            idx = np.searchsorted(self.probabilities, u)
+            # Law and Kelton's method
+            n = len(self.data)
+            P = (n - 1) * u
+            I = int(P) + 1
             
-            if idx == 0:
-                # If u is smaller than the smallest probability, return the smallest data point
-                return self.data[0]
-            elif idx >= len(self.probabilities):
-                # If u is larger than the largest probability, return the largest data point
+            # Handle edge case when I is the last index
+            if I == n - 1:
                 return self.data[-1]
-            else:
-                # Linear interpolation between adjacent points in the ECDF
-                x1, x2 = self.data[idx-1], self.data[idx]
-                y1, y2 = self.probabilities[idx-1], self.probabilities[idx]
-                
-                # Interpolate between the two points
-                proportion = (u - y1) / (y2 - y1) if y2 > y1 else 0
-                sampled_value = x1 + proportion * (x2 - x1)
-                return sampled_value
+            
+            # Linear interpolation as per Law and Kelton's method
+            frac = P - I
+            sampled_value = self.data[I] + frac * (self.data[I + 1] - self.data[I])
+            return sampled_value
+
         
         # Generate u values for the slider
         u_values = np.linspace(0.01, 0.99, u_steps)
