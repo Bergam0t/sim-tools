@@ -1271,6 +1271,115 @@ class GroupedContinuousEmpirical:
 
 
 @DistributionRegistry.register()
+class RawContinuousEmpirical:
+    """
+    Continuous Empirical Distribution for Raw Data implementation.
+
+    A distribution that performs linear interpolation between points of an
+    empirical cumulative distribution function (ECDF) derived from raw data.
+    Useful for modeling empirical data with a continuous approximation.
+
+    Maximum and minimun values of the distribution are defined by the data.
+    """
+
+    def __init__(
+        self,
+        data: ArrayLike,
+        random_seed: Optional[Union[int, SeedSequence]] = None,
+    ):
+        """
+        Initialize a continuous empirical distribution from raw data.
+
+        Parameters
+        ----------
+        data : ArrayLike
+            Raw data points to create the empirical distribution from.
+
+        random_seed : Optional[Union[int, SeedSequence]], default=None
+            A random seed or SeedSequence to reproduce samples. If None, a unique
+            sample sequence is generated.
+        """
+        self.rng = np.random.default_rng(random_seed)
+        
+        # Sort the data to create the ECDF
+        self.data = np.sort(np.asarray(data, dtype=float))
+        
+        # Calculate the ECDF probabilities
+        n = len(self.data)
+        self.probabilities = np.arange(1, n + 1) / n
+
+    def __repr__(self):
+        data_repr = (
+            str(self.data.tolist())
+            if len(self.data) < 4
+            else f"[{', '.join(str(x) for x in self.data[:3])}, ...]"
+        )
+        return f"ContinuousEmpirical(data={data_repr})"
+    
+
+    def sample(
+        self, size: Optional[Union[int, Tuple[int, ...]]] = None
+    ) -> Union[float, NDArray[np.float64]]:
+        """
+        Sample from the Continuous Empirical Distribution.
+
+        Parameters
+        ----------
+        size : Optional[Union[int, Tuple[int, ...]]], default=None
+            The number/shape of samples to generate:
+            - If None: returns a single sample as a float
+            - If int: returns a 1-D array with that many samples
+            - If tuple of ints: returns an array with that shape
+
+        Returns
+        -------
+        Union[float, NDArray[np.float64]]
+            Random samples from the continuous empirical distribution
+        """
+        if size is None:
+            size = 1
+
+        # Handle the case where size is a tuple - convert to total number of samples
+        total_samples = size if isinstance(size, int) else np.prod(size)
+
+        samples = []
+        for _ in range(total_samples):
+            # Sample a value u from the uniform(0, 1) distribution
+            u = self.rng.random()
+
+            # Find where u would be inserted in the probabilities array
+            idx = np.searchsorted(self.probabilities, u)
+            
+            if idx == 0:
+                # If u is smaller than the smallest probability, return the smallest data point
+                continuous_value = self.data[0]
+            elif idx >= len(self.probabilities):
+                # If u is larger than the largest probability, return the largest data point
+                continuous_value = self.data[-1]
+            else:
+                # Linear interpolation between adjacent points in the ECDF
+                x1, x2 = self.data[idx-1], self.data[idx]
+                y1, y2 = self.probabilities[idx-1], self.probabilities[idx]
+                
+                # Interpolate between the two points
+                proportion = (u - y1) / (y2 - y1) if y2 > y1 else 0
+                continuous_value = x1 + proportion * (x2 - x1)
+
+            samples.append(continuous_value)
+
+        if total_samples == 1:
+            # Return as python float instead of np.float64
+            return float(samples[0])
+
+        result = np.asarray(samples)
+        # Reshape if size was a tuple
+        if isinstance(size, tuple):
+            result = result.reshape(size)
+        return result
+
+
+
+@DistributionRegistry.register()
 class Erlang:
     """
     Erlang distribution implementation.
@@ -1731,9 +1840,9 @@ class Beta:
 
 
 @DistributionRegistry.register()
-class Discrete:
+class DiscreteEmpirical:
     """
-    Discrete distribution implementation.
+    DiscreteEmpirical distribution implementation.
 
     A probability distribution that samples values with specified frequencies.
     Useful for modeling categorical data or discrete outcomes with known probabilities.

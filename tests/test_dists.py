@@ -27,7 +27,7 @@ SEED_1 = 42
     (dists.PearsonV, (1.2, 2.8), float),
     (dists.PearsonVI, (1.2, 1.2, 2.8), float),
     (dists.Poisson, (5.5,), int),
-    (dists.Discrete, ([1, 2, 3], [95, 3, 2]), int)
+    (dists.DiscreteEmpirical, ([1, 2, 3], [95, 3, 2]), int)
 ])
 def test_distribution_sample_type(dist_class, args, expected_type):
     """
@@ -107,7 +107,7 @@ def test_discrete_multiple():
     """
     Check that Discrete `sample` method returns the expected number of samples.
     """
-    d = dists.Discrete(values=[1, 2, 3], freq=[95, 3, 2], random_seed=SEED_1)
+    d = dists.DiscreteEmpirical(values=[1, 2, 3], freq=[95, 3, 2], random_seed=SEED_1)
     assert len(d.sample(size=100)) == 100
 
 
@@ -159,4 +159,5 @@ def test_grouped_continuous_empirical_mean_and_var():
     # Assert that sample mean approximates theoretical mean
     assert sample_mean == pytest.approx(theoretical_mean, rel=1e-2)
     assert sample_variance == pytest.approx(theoretical_variance, rel=1e-2)
+
 
