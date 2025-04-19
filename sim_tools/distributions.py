@@ -1123,6 +1123,34 @@ class GroupedContinuousEmpirical:
         )
         return f"ContinuousEmpirical(lower_bounds={lb_repr}, upper_bounds={ub_repr}, freq=...)"
 
+    @property
+    def mean(self) -> float:
+        """Calculate the theoretical mean of the distribution."""
+        # Calculate midpoints of each bin
+        midpoints = (self.lower_bounds + self.upper_bounds) / 2
+        
+        # Get the probabilities from the cumulative probabilities
+        probs = np.diff(np.append(0, self.cumulative_probs))
+        
+        # Return weighted average of midpoints
+        return np.sum(midpoints * probs)
+
+    @property
+    def variance(self) -> float:
+        """Calculate the theoretical variance of the distribution."""
+        # Calculate midpoints of each bin
+        midpoints = (self.lower_bounds + self.upper_bounds) / 2
+        
+        # Get the probabilities from the cumulative probabilities
+        probs = np.diff(np.append(0, self.cumulative_probs))
+        
+        # Calculate mean
+        mean_val = np.sum(midpoints * probs)
+        
+        # Return weighted average of squared deviations
+        return np.sum(probs * (midpoints - mean_val)**2)
+
+
     def create_cumulative_probs(self, freq: ArrayLike) -> NDArray[np.float64]:
         """
         Calculate cumulative relative frequency from frequency.
