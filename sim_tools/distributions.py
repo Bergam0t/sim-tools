@@ -1128,10 +1128,10 @@ class GroupedContinuousEmpirical:
         """Calculate the theoretical mean of the distribution."""
         # Calculate midpoints of each bin
         midpoints = (self.lower_bounds + self.upper_bounds) / 2
-        
+
         # Get the probabilities from the cumulative probabilities
         probs = np.diff(np.append(0, self.cumulative_probs))
-        
+
         # Return weighted average of midpoints
         return np.sum(midpoints * probs)
 
@@ -1139,30 +1139,32 @@ class GroupedContinuousEmpirical:
     def variance(self) -> float:
         """
         Calculate the theoretical variance of the GroupedContinuousEmpirical distribution.
-        
+
         The total variance is composed of two components:
         1. Between-bin variance: Variance arising from the differences between bin midpoints
         2. Within-bin variance: Additional variance from the linear interpolation within each bin
-        
-        For a linear interpolation model, the within-bin component follows the variance 
-        formula for a uniform distribution: (bin_width)²/12 for each bin, weighted by 
+
+        For a linear interpolation model, the within-bin component follows the variance
+        formula for a uniform distribution: (bin_width)²/12 for each bin, weighted by
         the bin's probability.
-        
+
         Returns
         -------
         float
             The theoretical variance of the distribution.
-        
+
         Notes
         -----
-        This calculation provides the exact theoretical variance of a continuous distribution
-        created through linear interpolation between grouped data points. The formula accounts
-        for both the positioning of the groups and the additional variance introduced by the
+        This calculation provides the exact theoretical variance of a 
+        continuous distribution created through linear interpolation between 
+        grouped data points. The formula accounts for both the positioning of 
+        the groups and the additional variance introduced by the
         interpolation process itself.
-        
-        Simple variance calculations that only consider bin midpoints will underestimate
-        the true variance of the interpolated distribution.
-        
+
+        Simple variance calculations that only consider bin midpoints 
+        will underestimate the true variance of the 
+        interpolated distribution.
+
         Example
         -------
         >>> dist = GroupedContinuousEmpirical([0, 1, 2], [1, 2, 3], [10, 20, 30])
@@ -1171,26 +1173,23 @@ class GroupedContinuousEmpirical:
         """
         # Calculate midpoints of each bin
         midpoints = (self.lower_bounds + self.upper_bounds) / 2
-        
+
         # Get the probabilities from the cumulative probabilities
         probs = np.diff(np.append(0, self.cumulative_probs))
-        
+
         # Calculate mean
         mean_val = np.sum(midpoints * probs)
-    
+
         # Between-bin variance (using midpoints)
-        between_bin_variance = np.sum(probs * (midpoints - mean_val)**2)
-        
+        between_bin_variance = np.sum(probs * (midpoints - mean_val) ** 2)
+
         # Within-bin variance (from uniform distribution in each bin)
         # For a uniform distribution on [a,b], variance = (b-a)²/12
         bin_widths = self.upper_bounds - self.lower_bounds
         within_bin_variance = np.sum(probs * (bin_widths**2) / 12)
-        
+
         # Total variance is the sum of both components
         return between_bin_variance + within_bin_variance
-
-
-
 
     def create_cumulative_probs(self, freq: ArrayLike) -> NDArray[np.float64]:
         """
@@ -1249,10 +1248,12 @@ class GroupedContinuousEmpirical:
             # TM fix 19/04/25 - handle lower bound silent error
             # For idx = 0, use 0.0 as the previous cumulative probability
             prev_cumprob = 0.0 if idx == 0 else self.cumulative_probs[idx - 1]
-            
+
             # Use linear interpolation of u between
             # the lower and upper bound to obtain a continuous value
-            proportion = (u - prev_cumprob) / (self.cumulative_probs[idx] - prev_cumprob)
+            proportion = (u - prev_cumprob) / (
+                self.cumulative_probs[idx] - prev_cumprob
+            )
             continuous_value = lb + proportion * (ub - lb)
 
             samples.append(continuous_value)
@@ -1898,7 +1899,7 @@ class TruncatedDistribution:
 
 
 @DistributionRegistry.register()
-class RawEmpirical:
+class RawDiscreteEmpirical:
     """
     Raw Empirical distribution implementation.
 
@@ -1940,6 +1941,16 @@ class RawEmpirical:
             else f"[{', '.join(str(x) for x in self.values[:3])}, ...]"
         )
         return f"RawEmpirical(values={values_repr})"
+    
+    @property
+    def mean(self) -> float:
+        """Calculate the theoretical mean of the distribution."""
+        return np.mean(self.values)
+    
+    @property
+    def variance(self) -> float:
+        """Calculate the theoretical variance of the distribution."""
+        return np.var(self.values, ddof=0)  # ddof=0 for population variance
 
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
