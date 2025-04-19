@@ -1177,11 +1177,14 @@ class ContinuousEmpirical:
             idx = np.searchsorted(self.cumulative_probs, u)
             lb, ub = self.lower_bounds[idx], self.upper_bounds[idx]
 
+            # TM fix 19/04/25 - handle lower bound silent error
+            # For idx = 0, use 0.0 as the previous cumulative probability
+            prev_cumprob = 0.0 if idx == 0 else self.cumulative_probs[idx - 1]
+            
             # Use linear interpolation of u between
             # the lower and upper bound to obtain a continuous value
-            continuous_value = lb + (ub - lb) * (
-                u - self.cumulative_probs[idx - 1]
-            ) / (self.cumulative_probs[idx] - self.cumulative_probs[idx - 1])
+            proportion = (u - prev_cumprob) / (self.cumulative_probs[idx] - prev_cumprob)
+            continuous_value = lb + proportion * (ub - lb)
 
             samples.append(continuous_value)
 
@@ -1467,7 +1470,7 @@ class Gamma:
         Raises
         ------
         ValueError
-            If alpha or beta are not positive.
+            If alpha or beta or location are not positive.
         """
         validate(alpha, "alpha", is_numeric, is_positive)
         validate(beta, "beta", is_numeric, is_positive)
