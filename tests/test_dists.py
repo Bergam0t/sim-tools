@@ -3,6 +3,7 @@ basic smoke tests
 Create objects to check all okay
 """
 
+import numpy as np
 import pytest
 
 import sim_tools.distributions as dists
@@ -129,3 +130,33 @@ def test_truncated_min(n, expected):
     d1 = dists.Normal(10, 1, random_seed=SEED_1)
     d2 = dists.TruncatedDistribution(d1, lower_bound=expected)
     assert min(d2.sample(size=n)) >= expected
+
+
+def test_grouped_continuous_empirical_mean_and_var():
+    """Test that theorectical mean is approx = to sampled.
+    """
+    # Define test data
+    lower_bounds = [0, 1, 2]
+    upper_bounds = [1, 2, 3]
+    freq = [10, 20, 30]
+    
+    # Create distribution with fixed random seed for reproducibility
+    dist = dists.GroupedContinuousEmpirical(
+        lower_bounds, upper_bounds, freq, random_seed=42)
+    
+    # Get theoretical mean
+    theoretical_mean = dist.mean
+    # Get theoretical variance
+    theoretical_variance = dist.variance
+    
+    # Generate a large sample
+    samples = dist.sample(500_000)
+    
+    # Calculate sample mean and var
+    sample_mean = np.mean(samples)
+    sample_variance = np.var(samples)
+   
+    # Assert that sample mean approximates theoretical mean
+    assert sample_mean == pytest.approx(theoretical_mean, rel=1e-2)
+    assert sample_variance == pytest.approx(theoretical_variance, rel=1e-2)
+
