@@ -53,12 +53,18 @@
       "dists": 1.0
     }
   },
-  "ContinuousEmpirical_example": {
-    "class_name": "ContinuousEmpirical",
+  "GroupedContinuousEmpirical_example": {
+    "class_name": "GroupedContinuousEmpirical",
     "params": {
       "lower_bounds": 0.0,
       "upper_bounds": 1.0,
       "freq": 1.0
+    }
+  },
+  "RawContinuousEmpirical_example": {
+    "class_name": "RawContinuousEmpirical",
+    "params": {
+      "data": 1.0
     }
   },
   "Erlang_example": {
@@ -94,8 +100,8 @@
       "upper_bound": 1.0
     }
   },
-  "Discrete_example": {
-    "class_name": "Discrete",
+  "DiscreteEmpirical_example": {
+    "class_name": "DiscreteEmpirical",
     "params": {
       "values": 1.0,
       "freq": 1.0
@@ -108,8 +114,8 @@
       "lower_bound": 0.0
     }
   },
-  "RawEmpirical_example": {
-    "class_name": "RawEmpirical",
+  "RawDiscreteEmpirical_example": {
+    "class_name": "RawDiscreteEmpirical",
     "params": {
       "values": 1.0
     }
@@ -141,6 +147,13 @@
     "class_name": "Poisson",
     "params": {
       "rate": 1.0
+    }
+  },
+  "Hyperexponential_example": {
+    "class_name": "Hyperexponential",
+    "params": {
+      "probs": 1.0,
+      "rates": 1.0
     }
   }
 }
