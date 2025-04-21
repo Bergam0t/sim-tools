@@ -4,7 +4,9 @@ parts:
 - caption: Sampling
   chapters:
   - file: 01_sampling/01_distributions_examples
-  - file: 01_sampling/02_time_dependent_examples
+  - file: 01_sampling/02_empirical_distributions
+  - file: 01_sampling/03_distributions_registry
+  - file: 01_sampling/03_time_dependent_examples
 - caption: Debugging
   chapters:
   - file: 03_trace/01_simple_trace
