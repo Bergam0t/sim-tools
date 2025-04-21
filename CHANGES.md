@@ -32,12 +32,14 @@ Consistent identifier (represents all versions, resolves to latest): [![DOI](htt
 * BREAKING: `Discrete` -> `DiscreteEmpirical`
 * BREAKING: `RawEmpirical` -> `RawDiscreteEmpirical`
 * BREAKING: `ContinuousEmpirical` -> GroupedContinuousEmpirical`. To clarify the purpose of the emprical distribution
+* BREAKING: `NSPPThinning`: class now only requires "mean_iat" column in `data`. Acceptance/rejection calcualted using $iat_{min} / iat_(t)$
 
 
 ### Fixed
 
 * `Gamma` fix of the calculation of the mean based on alpha and beta.
 * `GroupedContinuousEmpirical`: silent bug when `u` selects the first group.  Interpolation did not work correctly and sampled out of range. This now been handled by logic pre-sample.
+* `NSPPThinning`: removed redundant outer loop from sampling.
 
 ## [v0.8.0](https://github.com/TomMonks/sim-tools/releases/tag/v0.8.0a)
 
