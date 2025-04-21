@@ -41,6 +41,14 @@ pip install sim-tools
 conda install -c conda-forge sim-tools
 ```
 
+### Mamba
+
+`mamba` is a FOSS alternative to `conda` that is also quicker at resolving and installing environments.
+
+```bash
+mamba install sim-tools
+```
+
 ### Binder
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/TomMonks/sim-tools/HEAD)
