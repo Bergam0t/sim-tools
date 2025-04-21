@@ -75,6 +75,18 @@ class NSPPThinning:
         
         self.rejects_last_sample = None
 
+    def __repr__(self):
+        """Return a string representation of the NSPPThinning instance."""
+        # Truncate the data representation if too long
+        max_len = 100
+        data_str = repr(self.data)
+        if len(data_str) > max_len:
+            data_str = data_str[:max_len] + '...'
+        
+        # Return class name with both data and interval information
+        return f"{self.__class__.__name__}(data={data_str}, interval={self.interval})"
+
+
     def sample(self, simulation_time: float) -> float:
         """
         Run a single iteration of acceptance-rejection
