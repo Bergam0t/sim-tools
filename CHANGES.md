@@ -7,7 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Consistent identifier (represents all versions, resolves to latest): [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4553641.svg)](https://doi.org/10.5281/zenodo.4553641)
 
-## Unreleased
+## UNRELEASED (will be v0.9.0)
+
+### Added
+
+* `distributions.DistributionRegistry` - for batch creation of standard distributions from a dictionary or list.  
+* DOCS: `DistributionRegistry` explaination and examples including use of JSON to store configs.
+* `distributions.spawn_seeds` function to support creation of PRNG streams.
+* `Hyperexponential` - A continuous probability distribution that is a mixture (weighted sum) of
+    exponential distributions. It has a higher coefficient of variation than
+    a single exponential distribution, making it useful for modeling highly
+    variable processes or heavy-tailed phenomena.
+* `RawContinuousEmpirical` - A distribution that performs linear interpolation between data points according to 
+    the algorithm described in Law & Kelton's "Simulation Modeling and Analysis".
+* `sim_tools._validation`: internal module that contains common validation routines for `sim_tools` functions and classes.
+* All distribution classes updated to include valudation of input parameters.
+* DOCS: Dedicated page for using empirical distributions.
+
+### Changed
+
+* `Distribution` changed from abstract base class to `Protocol`.  All inheritance removed from concrete classes. 
+* Added `__repr__()` to all distribution classes.
+* DOCS: improved docstrings for all distribution classes
+* BREAKING: `Discrete` -> `DiscreteEmpirical`
+* BREAKING: `RawEmpirical` -> `RawDiscreteEmpirical`
+* BREAKING: `ContinuousEmpirical` -> GroupedContinuousEmpirical`. To clarify the purpose of the emprical distribution
+* BREAKING: `NSPPThinning`: class now only requires "mean_iat" column in `data`. Acceptance/rejection calcualted using $iat_{min} / iat_(t)$
+
+
+### Fixed
+
+* `Gamma` fix of the calculation of the mean based on alpha and beta.
+* `GroupedContinuousEmpirical`: silent bug when `u` selects the first group.  Interpolation did not work correctly and sampled out of range. This now been handled by logic pre-sample.
+* `NSPPThinning`: removed redundant outer loop from sampling.
+
+## [v0.8.0](https://github.com/TomMonks/sim-tools/releases/tag/v0.8.0a)
 
 ### Added
 
