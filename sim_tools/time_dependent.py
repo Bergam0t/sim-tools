@@ -4,8 +4,8 @@ Classes and functions to support time dependent samplingm in DES models.
 
 from typing import Optional, Tuple
 
-import itertools
 import numpy as np
+from numpy.random import SeedSequence
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -16,55 +16,76 @@ class NSPPThinning:
     Non Stationary Poisson Process via Thinning.
 
     Thinning is an acceptance-rejection approach to sampling
-    inter-arrival times (IAT) from a time dependent distribution
+    inter-arrival times (IAT) from a time-dependent distribution
     where each time period follows its own exponential distribution.
 
-    There are two random variables employed in sampling: an exponential
-    distribution (used to sample IAT) and a uniform distibution (used
-    to accept/reject samples).
-
-    All IATs are sampled from an Exponential distribution with the highest
-    arrival rate (most frequent). These arrivals are then rejected (thinned)
-    proportional to the ratio of the current arrival rate to the maximum
-    arrival rate.  The algorithm executes until a sample is accepted. The IAT
-    returned is the sum of all the IATs that were sampled.
-
+    This implementation takes mean inter-arrival times as inputs, making it
+    consistent with NumPy's exponential distribution parameterization.
     """
 
     def __init__(
         self,
-        data,
-        random_seed1: Optional[int] = None,
-        random_seed2: Optional[int] = None,
+        data: pd.DataFrame,
+        interval_width: Optional[float] = None,
+        random_seed1: Optional[int | SeedSequence] = None,
+        random_seed2: Optional[int | SeedSequence] = None,
     ):
         """
         Non Stationary Poisson Process via Thinning.
 
-        Time dependency is handled for a single table
+        Time dependency is andled for a single table
         consisting of equally spaced intervals.
 
         Params:
         ------
         data: pandas.DataFrame
-            list of time points during a period for transition between rates
-            and list arrival rates in that period. Labels should be "t"
-            and "arrival_rate" respectively.
+            DataFrame with time points and mean inter-arrival times.
+            Columns should be "t" and "mean_iat" respectively.
 
-        random_seed1: int, optional (default=None)
-            Random seed for exponential distribution
+        interval_width: float, optional (default=None)
+            The width of each time interval. If None, it will be calculated
+            from consecutive time points in the data. Required if data has only one row.
 
-        random_seed2: int
+        random_seed1: int | SeedSequence, optional (default=None)
+            Random seed for the exponential distribution
+
+        random_seed2: int | SeedSequence, optional (default=None)
             Random seed for the uniform distribution used
             for acceptance/rejection sampling.
         """
         self.data = data
         self.arr_rng = np.random.default_rng(random_seed1)
         self.thinning_rng = np.random.default_rng(random_seed2)
-        self.lambda_max = data["arrival_rate"].max()
+
+        # Find the minimum mean IAT (which corresponds to the maximum arrival rate)
         self.min_iat = data["mean_iat"].min()
-        # assumes all other intervals are equal in length.
-        self.interval = int(data.iloc[1]["t"] - data.iloc[0]["t"])
+
+        if self.min_iat <= 0:
+            raise ValueError("Mean inter-arrival times must be positive")
+
+        # Use provided interval width or calculate from data
+        if interval_width is not None:
+            self.interval = interval_width
+        elif len(data) > 1:
+            # Calculate from data (assumes all intervals are equal in length)
+            self.interval = data.iloc[1]["t"] - data.iloc[0]["t"]
+        else:
+            raise ValueError(
+                "With only one data point, interval_width must be provided"
+            )
+
         self.rejects_last_sample = None
+
+    def __repr__(self):
+        """Return a string representation of the NSPPThinning instance."""
+        # Truncate the data representation if too long
+        max_len = 100
+        data_str = repr(self.data)
+        if len(data_str) > max_len:
+            data_str = data_str[:max_len] + "..."
+
+        # Return class name with both data and interval information
+        return f"{self.__class__.__name__}(data={data_str}, interval={self.interval})"
 
     def sample(self, simulation_time: float) -> float:
         """
@@ -74,34 +95,36 @@ class NSPPThinning:
         Params:
         ------
         simulation_time: float
-            The current simulation time.  This is used to look up
-            the arrival rate for the time period.
+            The current simulation time. This is used to look up
+            the mean IAT for the time period.
 
         Returns:
         -------
         float
             The inter-arrival time
         """
-        for _ in itertools.count():
-            # this gives us the index of dataframe to use
-            t = int(simulation_time // self.interval) % len(self.data)
-            lambda_t = self.data["arrival_rate"].iloc[t]
 
-            # set to a large number so that at least 1 sample taken!
-            u = np.inf
+        # this gives us the index of dataframe to use
+        t = int(simulation_time // self.interval) % len(self.data)
+        mean_iat_t = self.data["mean_iat"].iloc[t]
 
-            # included for audit and tracking purposes.
-            self.rejects_last_sample = 0.0
+        # set to a large number so that at least 1 sample taken!
+        u = np.inf
 
-            interarrival_time = 0.0
+        # included for audit and tracking purposes.
+        self.rejects_last_sample = 0
 
-            # reject samples if u >= lambda_t / lambda_max
-            while u >= (lambda_t / self.lambda_max):
-                self.rejects_last_sample += 1
-                interarrival_time += self.arr_rng.exponential(self.min_iat)
-                u = self.thinning_rng.uniform(0.0, 1.0)
+        interarrival_time = 0.0
 
-            return interarrival_time
+        # We accept the sample if u < (min_iat / mean_iat_t)
+        # This is equivalent to the original u < (lambda_t / lambda_max)
+        # since lambda = 1/mean_iat
+        while u >= (self.min_iat / mean_iat_t):
+            self.rejects_last_sample += 1
+            interarrival_time += self.arr_rng.exponential(self.min_iat)
+            u = self.thinning_rng.uniform(0.0, 1.0)
+
+        return interarrival_time
 
 
 def nspp_simulation(
@@ -154,13 +177,14 @@ def nspp_simulation(
         seeds = seed_sequence.spawn(2)
 
         # create nspp
-        nspp_rng = NSPPThinning(arrival_profile, seeds[0], seeds[1])
+        nspp_rng = NSPPThinning(
+            data=arrival_profile, random_seed1=seeds[0], random_seed2=seeds[1]
+        )
 
         # if no run length has been set....
         if run_length is None:
             run_length = (
-                arrival_profile["t"].iloc[len(arrival_profile) - 1] +
-                nspp_rng.interval
+                arrival_profile["t"].iloc[len(arrival_profile) - 1] + nspp_rng.interval
             )
 
         # list - each item is an interval in the arrival profile
@@ -170,13 +194,11 @@ def nspp_simulation(
             iat = nspp_rng.sample(simulation_time)
             simulation_time += iat
 
-
             if simulation_time < run_length:
                 # data collection: add one to count for hour of the day
                 # note list NSPPThinning this assume equal intervals
-                interval_of_day = (
-                    int(simulation_time // nspp_rng.interval) %
-                    len(arrival_profile)
+                interval_of_day = int(simulation_time // nspp_rng.interval) % len(
+                    arrival_profile
                 )
                 interval_samples[interval_of_day] += 1
 
@@ -224,8 +246,7 @@ def nspp_plot(
     # is it a dataframe
     if not isinstance(arrival_profile, pd.DataFrame):
         raise ValueError(
-            f"arrival_profile expected pd.DataFrame " +
-            f"got {type(arrival_profile)}"
+            f"arrival_profile expected pd.DataFrame " + f"got {type(arrival_profile)}"
         )
 
     # all columns are present
@@ -253,8 +274,7 @@ def nspp_plot(
 
     # plot in this case returns a 2D line plot object
     _ = ax.plot(arrival_profile["t"], interval_means, label="Mean")
-    _ = ax.fill_between(
-        arrival_profile["t"], lower, upper, alpha=0.2, label="+-1SD")
+    _ = ax.fill_between(arrival_profile["t"], lower, upper, alpha=0.2, label="+-1SD")
 
     # chart appearance
     _ = ax.legend(loc="best", ncol=3)
