@@ -10,7 +10,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-
 # pylint: disable=too-few-public-methods
 class NSPPThinning:
     """
@@ -47,10 +46,10 @@ class NSPPThinning:
             The width of each time interval. If None, it will be calculated
             from consecutive time points in the data. Required if data has only one row.
 
-        random_seed1: int, optional (default=None)
-            Random seed for exponential distribution
+        random_seed1: int | SeedSequence, optional (default=None)
+            Random seed for the exponential distribution
 
-        random_seed2: int, optional (default=None)
+        random_seed2: int | SeedSequence, optional (default=None)
             Random seed for the uniform distribution used
             for acceptance/rejection sampling.
         """
