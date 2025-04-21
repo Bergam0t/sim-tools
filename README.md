@@ -11,21 +11,22 @@
 [![License: MIT](https://img.shields.io/badge/ORCID-0000--0003--2631--4481-brightgreen)](https://orcid.org/0000-0003-2631-4481)
 
 
-`sim-tools` is being developed to support Discrete-Event Simulation (DES) education and applied simulation research.  It is MIT licensed and freely available to practitioners, students and researchers via [PyPi](https://pypi.org/project/sim-tools/) and [conda-forge](https://anaconda.org/conda-forge/sim-tools)
+`sim-tools` is being developed to support Discrete-Event Simulation (DES) and Monte-Carlo Simulation education and applied simulation research.  It is MIT licensed and freely available to practitioners, students and researchers via [PyPi](https://pypi.org/project/sim-tools/) and [conda-forge](https://anaconda.org/conda-forge/sim-tools)
 
  # Vision for sim-tools
 
- 1. Deliver high quality reliable code for DES education and practice with full documentation.
+ 1. Deliver high quality reliable code for DES and Monte-Carlo Simulation education and practice with full documentation.
  2. Provide a simple to use pythonic interface.
- 3. To improve the quality of DES education using FOSS tools and encourage the use of best practice.
+ 3. To improve the quality of simulation education using FOSS tools and encourage the use of best practice.
 
 # Features:
 
 1. Implementation of classic Optimisation via Simulation procedures such as KN, KN++, OBCA and OBCA-m
-2. Distributions module that includes classes that encapsulate a random number stream, seed, and distribution parameters.
-3. Implementation of Thinning to sample from Non-stationary poisson processes in a DES.
-4. Automatic selection of the number of replications to run via the Replications Algorithm.
-5. EXPERIMENTAL: model trace functionality to support debugging of simulation models.
+2. Theoretical and empirical distributions module that includes classes that encapsulate a random number stream, seed, and distribution parameters.
+3. An extendable Distribution registry that provides a quick reproduible way to parameterise simulation models.
+4. Implementation of Thinning to sample from Non-stationary Poisson Processes (time-dependent) in a DES.
+5. Automatic selection of the number of replications to run via the Replications Algorithm.
+6. EXPERIMENTAL: model trace functionality to support debugging of simulation models.
 
 ## Installation
 
