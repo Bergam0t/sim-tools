@@ -1,9 +1,10 @@
 <h1 align="center">
-  <a href="https://github.com/TomMonks/sim-tools"><img src="./docs/img/simtools_logo_purple.png" alt="Sim-tools"></a>
-  <br>
-  Tools to support the simulation process in python.
-  <br>
+  <a href="https://github.com/TomMonks/sim-tools"><img src="./docs/img/simtools_logo_purple.png" alt="Sim-tools" width="300"></a>
 </h1>
+
+<p align="center">
+  <i align="center">Tools to support Discrete-Event Simulation (DES) and Monte-Carlo Simulation education and practice</i>
+</p>
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/TomMonks/sim-tools/HEAD)
 [![DOI](https://zenodo.org/badge/225608065.svg)](https://zenodo.org/badge/latestdoi/225608065)
