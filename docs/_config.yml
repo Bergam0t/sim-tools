@@ -4,7 +4,7 @@ author: Thomas Monks
 email: t.m.w.monks@exeter.ac.uk
 description: >- # this means to ignore newlines until "baseurl:"
   sim-tools documentation
-#logo: content/imgs/logo_v1.png
+logo: img/simtools_logo_notext.png
 
 # only build files specified in table of contents file
 only_build_toc_files: true
