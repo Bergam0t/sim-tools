@@ -19,4 +19,4 @@ parts:
   - file: 02_ovs/03_sw21_tutorial
 - caption: Release History
   chapters:
-  - file: 03_CHANGES
+  - file: changes

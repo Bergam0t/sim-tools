@@ -30,8 +30,8 @@ def test_klimit(look_ahead, n, exp):
     """
     Check that the _klimit() calculations are as expected.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     look_ahead: int
         Minimum additional replications to look ahead to assess stability of
         precision.
@@ -61,8 +61,8 @@ def test_algorithm_invalid(arg, value):
     """
     Ensure that ReplicationsAlgorithm responds appropriately to invalid inputs.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     arg: string
         Name of input for ReplicationsAlgorithm.
     value: float
