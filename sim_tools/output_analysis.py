@@ -41,7 +41,7 @@ class ReplicationObserver(Protocol):
         """
         Add an observation of a replication
 
-        Parameters:
+        Parameters
         -----------
         results: OnlineStatistic
             The current replication to observe.
@@ -50,7 +50,7 @@ class ReplicationObserver(Protocol):
 
 class OnlineStatistics:
     """
-    Welford’s algorithm for computing a running sample mean and
+    Welford's algorithm for computing a running sample mean and
     variance. Allowing computation of CIs and half width % deviation
     from the mean.
 
@@ -68,8 +68,8 @@ class OnlineStatistics:
         Initiaise Welford’s algorithm for computing a running sample mean and
         variance.
 
-        Parameters:
-        -------
+        Parameters
+        ----------
         data: array-like, optional (default = None)
             Contains an initial data sample.
 
@@ -186,8 +186,8 @@ class OnlineStatistics:
 
         See Knuth. D `The Art of Computer Programming` Vol 2. 2nd ed. Page 216.
 
-        Params:
-        ------
+        Parameters
+        ----------
         x: float
             A new observation
         """
@@ -241,8 +241,8 @@ class ReplicationTabulizer:
         """
         Add an observation of a replication
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         results: OnlineStatistic
             The current replication to observe.
         """
@@ -300,7 +300,7 @@ def confidence_interval_method(
 
     Returns both the number of replications and the full results dataframe.
 
-    Parameters:
+    Parameters
     ----------
     replications: arraylike
         Array (e.g. np.ndarray or list) of replications of a performance metric
@@ -322,8 +322,8 @@ def confidence_interval_method(
         sets the number of decimal places of the returned dataframe containing
         the results
 
-    Returns:
-    --------
+    Returns
+    -------
         tuple: int, pd.DataFrame
 
     """
@@ -363,7 +363,7 @@ def plotly_confidence_interval_method(
     """
     Interactive Plotly visualization with deviation hover information
 
-    Parameters:
+    Parameters
     ----------
     n_reps: int
         Minimum number of reps selected
@@ -374,7 +374,7 @@ def plotly_confidence_interval_method(
     figsize: tuple, optional (default=(1200,400))
         Plot dimensions in pixels (width, height)
 
-    Returns:
+    Returns
     -------
         plotly.graph_objects.Figure
     """
@@ -468,7 +468,7 @@ class ReplicationsAlgorithm:
 
     Note only works with a single performance measure
 
-    Sources:
+    Sources
     -------
 
     Please cite the authors of the algorithm if you use it in your work.
@@ -491,12 +491,12 @@ class ReplicationsAlgorithm:
         observer: Optional[ReplicationObserver] = None,
     ):
         """
-        Initiatise the replications algorithm
+        Initialise the replications algorithm
 
-        Parameters:
+        Parameters
         ----------
         alpha: float, optional (default = 0.05)
-            Used to construct the 100(1-alpha) CI
+            Used to construct the 100(1-alpha) CI.
 
         half_width_precision: float, optional (default = 0.1)
             The target half width precision for the algorithm
@@ -562,8 +562,8 @@ class ReplicationsAlgorithm:
     def _klimit(self) -> int:
         """
         Return the current look ahead.
-        if n <= 100 then return kLimit.  If n > 100 then compute kLimit
-        as fraction of n
+        If n <= 100 then return kLimit.  If n > 100 then compute kLimit
+        as fraction of n.
         """
         return int((self.look_ahead / 100) * max(self.n, 100))
 
@@ -572,8 +572,8 @@ class ReplicationsAlgorithm:
         Executes the replication algorithm, determining the necessary number
         of replications to achieve and maintain the desired precision.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         model (ReplicationsAlgorithmModelAdapter):
             Simulation model.
         """

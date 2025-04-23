@@ -36,8 +36,8 @@ class NSPPThinning:
         Time dependency is andled for a single table
         consisting of equally spaced intervals.
 
-        Params:
-        ------
+        Parameters
+        ----------
         data: pandas.DataFrame
             DataFrame with time points and mean inter-arrival times.
             Columns should be "t" and "mean_iat" respectively.
@@ -92,13 +92,13 @@ class NSPPThinning:
         Run a single iteration of acceptance-rejection
         thinning alg to sample the next inter-arrival time
 
-        Params:
-        ------
+        Parameters
+        ----------
         simulation_time: float
             The current simulation time. This is used to look up
             the mean IAT for the time period.
 
-        Returns:
+        Returns
         -------
         float
             The inter-arrival time
@@ -145,8 +145,8 @@ def nspp_simulation(
     intervals from the arrival profile.  Returns a data frame with reps (rows)
     and interval arrivals (columns).
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     arrival_profile: pandas.DataFrame
         The arrival profile is a pandas data frame containing 't',
         'arrival_rate' and 'mean_iat' columns.
@@ -158,8 +158,8 @@ def nspp_simulation(
     n_reps: int, optional (default=1000)
         The number of replications to run.
 
-    Returns:
-    --------
+    Returns
+    -------
     pd.DataFrame.
 
 
@@ -227,7 +227,7 @@ def nspp_plot(
     Useful for validating the the NSPP has been set up correctly and is
     producing the desired profile for the simulation model.
 
-    Parameters:
+    Parameters
     ----------
     arrival_profile: pandas.DataFrame
         The arrival profile is a pandas data frame containing 't',

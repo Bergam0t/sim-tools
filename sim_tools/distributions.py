@@ -2,10 +2,10 @@
 """
 Statistical distribution classes for simulation modeling.
 
-This module provides a collection of statistical distribution classes designed for
-simulation applications. Each distribution implements the Distribution protocol,
-which requires a sample() method that generates random values according to the
-distribution's parameters.
+This module provides a collection of statistical distribution classes designed
+for simulation applications. Each distribution implements the Distribution
+protocol, which requires a sample() method that generates random values
+according to the distribution's parameters.
 
 Features
 --------
@@ -22,22 +22,26 @@ The module includes common statistical distributions such as:
 - Gamma, Weibull, Erlang, ErlangK, Poisson
 - Bernoulli, Discrete, PearsonV, PearsonVI
 - Empirical distributions (ContinuousEmpirical, RawEmpirical)
-- Utility distributions (FixedDistribution, CombinationDistribution, TruncatedDistribution)
+- Utility distributions (FixedDistribution, CombinationDistribution,
+  TruncatedDistribution)
 
 Random Number Generation
 -----------------------
-Each distribution manages its own random number generator instance. All distributions
-that accept a random_seed parameter support:
+Each distribution manages its own random number generator instance. All
+distributions that accept a random_seed parameter support:
 - Integer seeds for basic reproducibility
 - numpy.random.SeedSequence objects for advanced stream management
 - None for auto-generated seeds
 
 Distribution Registry
 --------------------
-The DistributionRegistry provides centralized management for all distribution classes:
-- Register custom distribution classes with the @DistributionRegistry.register() decorator
+The DistributionRegistry provides centralized management for all distribution
+classes:
+- Register custom distribution classes with the
+  @DistributionRegistry.register() decorator
 - Create distribution instances by name with DistributionRegistry.create()
-- Generate multiple distributions with statistically independent seeds using create_batch()
+- Generate multiple distributions with statistically independent seeds using
+  create_batch()
 - Create configuration templates with get_template() for streamlined setup
 - Support for both dictionary and list-based batch configurations
 
@@ -67,7 +71,8 @@ Using the DistributionRegistry:
 >>> # Create multiple distributions with independent seeds
 >>> config = {
 ...     "arrivals": {"class_name": "Exponential", "params": {"mean": 5.0}},
-...     "service_times": {"class_name": "Normal", "params": {"mean": 10.0, "sigma": 2.0}}
+...     "service_times": {"class_name": "Normal", "params": {"mean": 10.0,
+                                                             "sigma": 2.0}}
 ... }
 >>> dists = DistributionRegistry.create_batch(config, main_seed=12345)
 >>> arrivals = dists["arrivals"]
@@ -82,10 +87,6 @@ Modeling and Analysis" (Law, 2007) where applicable.
 
 import math
 
-import numpy as np
-from numpy.typing import NDArray, ArrayLike
-from numpy.random import SeedSequence
-
 import inspect
 import json
 
@@ -99,6 +100,13 @@ from typing import (
     Dict,
     runtime_checkable,
 )
+
+import numpy as np
+from numpy.typing import NDArray, ArrayLike
+from numpy.random import SeedSequence
+
+import plotly.graph_objects as go
+import plotly.express as px
 
 from sim_tools._validation import (
     is_positive,  # > 0
@@ -121,7 +129,8 @@ class Distribution(Protocol):
     Distribution protocol defining the interface for probability distributions.
 
     Any class implementing this protocol should provide a sampling mechanism
-    that generates random values according to a specific probability distribution.
+    that generates random values according to a specific probability
+    distribution.
     """
 
     def sample(
@@ -152,7 +161,6 @@ class Distribution(Protocol):
         >>> array_1d = dist.sample(10)  # Returns 1D array with 10 samples
         >>> array_2d = dist.sample((2, 3))  # Returns 2×3 array of samples
         """
-        ...
 
 
 def spawn_seeds(n_streams: int, main_seed: Optional[int] = None):
@@ -203,7 +211,8 @@ def spawn_seeds(n_streams: int, main_seed: Optional[int] = None):
 
 class DistributionRegistry:
     """
-    Registry for probability distribution classes with batch creation capabilities.
+    Registry for probability distribution classes with batch creation
+    capabilities.
 
     The DistributionRegistry provides a central repository for registering
     distribution classes and instantiating them from configuration data. This
@@ -257,7 +266,8 @@ class DistributionRegistry:
     ...         "params": {"low": 1.0, "high": 3.0}
     ...     }
     ... }
-    >>> distributions = DistributionRegistry.create_batch(config, main_seed=12345)
+    >>> distributions = DistributionRegistry.create_batch(config,
+                                                          main_seed=12345)
     >>> arrivals = distributions["arrivals"]
     >>> service_times = distributions["service_times"]
 
@@ -353,7 +363,8 @@ class DistributionRegistry:
         ----------
         config : Union[List[Dict], Dict[str, Dict]]
             Either:
-            - A list of distribution configs, each with 'class_name' and 'params'
+            - A list of distribution configs, each with 'class_name' and
+              'params'
             - A dictionary mapping names to distribution configs
         main_seed : Optional[int], default=None
             Master seed to generate individual seeds for each distribution.
@@ -386,7 +397,7 @@ class DistributionRegistry:
             return result
 
         # Handle dictionary configuration
-        elif isinstance(config, dict):
+        if isinstance(config, dict):
             # Get all configuration items
             items = list(config.items())
 
@@ -402,36 +413,40 @@ class DistributionRegistry:
                 result[name] = dist
             return result
 
-        else:
-            raise TypeError("Configuration must be a list or dictionary")
+        raise TypeError("Configuration must be a list or dictionary")
 
     @classmethod
     def get_template(cls, format="json", indent=2):
         """
-        Generate a template configuration containing all registered distributions.
+        Generate a template configuration containing all registered
+        distributions.
 
-        This helper method creates a template that includes all registered distribution
-        types with appropriate dummy parameters. Users can modify this template and
-        pass it directly to create_batch() to instantiate their distributions.
+        This helper method creates a template that includes all registered
+        distribution types with appropriate dummy parameters. Users can modify
+        this template and pass it directly to create_batch() to instantiate
+        their distributions.
 
         Parameters
         ----------
         format : str, default="json"
-            Output format: 'dict' for Python dictionary or 'json' for JSON string
+            Output format: 'dict' for Python dictionary or 'json' for JSON
+            string
         indent : int, default=2
             Indentation for JSON formatting (if format='json')
 
         Returns
         -------
         Union[Dict, str]
-            Either a dictionary (if format='dict') or a JSON string (if format='json')
-            containing template configurations for all registered distributions
+            Either a dictionary (if format='dict') or a JSON string (if
+            format='json') containing template configurations for all
+            registered distributions
 
         Examples
         --------
         >>> template = DistributionRegistry.get_template(format='dict')
         >>> print(template.keys())
-        dict_keys(['Exponential_example', 'Normal_example', 'Uniform_example', ...])
+        dict_keys(['Exponential_example', 'Normal_example',
+                   'Uniform_example', ...])
 
         >>> template = DistributionRegistry.get_template(format='json')
         >>> print(template[:70])
@@ -488,8 +503,7 @@ class DistributionRegistry:
 
         if format.lower() == "json":
             return json.dumps(template, indent=indent)
-        else:
-            return template
+        return template
 
 
 # pylint: disable=too-few-public-methods
@@ -498,11 +512,12 @@ class Exponential:
     """
     Exponential distribution implementation.
 
-    A probability distribution that models the time between events in a Poisson process,
-    where events occur continuously and independently at a constant average rate.
+    A probability distribution that models the time between events in a Poisson
+    process, where events occur continuously and independently at a constant
+    average rate.
 
-    This class conforms to the Distribution protocol and provides methods to sample
-    from an exponential distribution with a specified mean.
+    This class conforms to the Distribution protocol and provides methods to
+    sample from an exponential distribution with a specified mean.
     """
 
     def __init__(
@@ -520,8 +535,8 @@ class Exponential:
             Must be positive.
 
         random_seed : Optional[Union[int, SeedSequence]], default=None
-            A random seed or SeedSequence to reproduce samples. If None, a unique
-            sample sequence is generated.
+            A random seed or SeedSequence to reproduce samples. If None, a
+            unique sample sequence is generated.
         """
         validate(mean, "mean", is_numeric, is_positive)
         self.rng = np.random.default_rng(random_seed)
@@ -563,8 +578,8 @@ class Bernoulli:
     A discrete probability distribution that takes value 1 with probability p
     and value 0 with probability 1-p.
 
-    This class conforms to the Distribution protocol and provides methods to sample
-    from a Bernoulli distribution with a specified probability.
+    This class conforms to the Distribution protocol and provides methods to
+    sample from a Bernoulli distribution with a specified probability.
     """
 
     def __init__(
@@ -579,8 +594,8 @@ class Bernoulli:
             Probability of drawing a 1. Must be between 0 and 1.
 
         random_seed : Optional[Union[int, SeedSequence]], default=None
-            A random seed or SeedSequence to reproduce samples. If None, a unique
-            sample sequence is generated.
+            A random seed or SeedSequence to reproduce samples. If None, a
+            unique sample sequence is generated.
         """
         validate(p, "p", is_numeric, is_probability)
         self.rng = np.random.default_rng(random_seed)
@@ -619,12 +634,13 @@ class Lognormal:
     """
     Lognormal distribution implementation.
 
-    A continuous probability distribution where the logarithm of a random variable
-    is normally distributed. It is useful for modeling variables that are the product
-    of many small independent factors.
+    A continuous probability distribution where the logarithm of a random
+    variable is normally distributed. It is useful for modeling variables that
+    are the product of many small independent factors.
 
-    This class conforms to the Distribution protocol and provides methods to sample
-    from a lognormal distribution with a specified mean and standard deviation.
+    This class conforms to the Distribution protocol and provides methods to
+    sample from a lognormal distribution with a specified mean and standard
+    deviation.
     """
 
     def __init__(
@@ -645,8 +661,8 @@ class Lognormal:
             Standard deviation of the lognormal distribution.
 
         random_seed : Optional[Union[int, SeedSequence]], default=None
-            A random seed or SeedSequence to reproduce samples. If None, a unique
-            sample sequence is generated.
+            A random seed or SeedSequence to reproduce samples. If None, a
+            unique sample sequence is generated.
         """
         validate(mean, "mean", is_numeric, is_positive)
         validate(stdev, "stdev", is_numeric, is_positive)
@@ -682,7 +698,8 @@ class Lognormal:
         Notes
         -----
         Formula source:
-        https://blogs.sas.com/content/iml/2014/06/04/simulate-lognormal-data-with-specified-mean-and-variance.html
+        https://blogs.sas.com/content/iml/2014/06/04/simulate-lognormal-data-
+        with-specified-mean-and-variance.html
         """
         phi = math.sqrt(v + m**2)
         mu = math.log(m**2 / phi)
@@ -721,8 +738,9 @@ class Normal:
     A continuous probability distribution that follows the Gaussian bell curve.
     This implementation allows truncating the distribution at a minimum value.
 
-    This class conforms to the Distribution protocol and provides methods to sample
-    from a normal distribution with specified mean and standard deviation.
+    This class conforms to the Distribution protocol and provides methods to
+    sample from a normal distribution with specified mean and standard
+    deviation.
     """
 
     def __init__(
@@ -748,8 +766,8 @@ class Normal:
             Any sampled values below this minimum will be set to this value.
 
         random_seed : Optional[Union[int, SeedSequence]], default=None
-            A random seed or SeedSequence to reproduce samples. If None, a unique
-            sample sequence is generated.
+            A random seed or SeedSequence to reproduce samples. If None, a
+            unique sample sequence is generated.
         """
         validate(mean, "mean", is_numeric)
         validate(sigma, "sigma", is_numeric, is_positive)
@@ -765,8 +783,8 @@ class Normal:
     def __repr__(self):
         if self.minimum is None:
             return f"Normal(mean={self.mean}, sigma={self.sigma})"
-        else:
-            return f"Normal(mean={self.mean}, sigma={self.sigma}, minimum={self.minimum})"
+        return (f"Normal(mean={self.mean}, sigma={self.sigma}, " +
+                f"minimum={self.minimum})")
 
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
@@ -816,8 +834,8 @@ class Uniform:
     A continuous probability distribution where all values in a range have
     equal probability of being sampled.
 
-    This class conforms to the Distribution protocol and provides methods to sample
-    from a uniform distribution between specified low and high values.
+    This class conforms to the Distribution protocol and provides methods to
+    sample from a uniform distribution between specified low and high values.
     """
 
     def __init__(
@@ -838,8 +856,8 @@ class Uniform:
             Upper bound of the distribution range.
 
         random_seed : Optional[Union[int, SeedSequence]], default=None
-            A random seed or SeedSequence to reproduce samples. If None, a unique
-            sample sequence is generated.
+            A random seed or SeedSequence to reproduce samples. If None, a
+            unique sample sequence is generated.
         """
         validate(low, "low", is_numeric)
         validate(high, "high", is_numeric)
@@ -880,11 +898,11 @@ class Triangular:
     """
     Triangular distribution implementation.
 
-    A continuous probability distribution with lower limit, upper limit, and mode,
-    forming a triangular-shaped probability density function.
+    A continuous probability distribution with lower limit, upper limit, and
+    mode, forming a triangular-shaped probability density function.
 
-    This class conforms to the Distribution protocol and provides methods to sample
-    from a triangular distribution with specified parameters.
+    This class conforms to the Distribution protocol and provides methods to
+    sample from a triangular distribution with specified parameters.
     """
 
     def __init__(
@@ -909,8 +927,8 @@ class Triangular:
             Upper limit of the distribution.
 
         random_seed : Optional[Union[int, SeedSequence]], default=None
-            A random seed or SeedSequence to reproduce samples. If None, a unique
-            sample sequence is generated.
+            A random seed or SeedSequence to reproduce samples. If None, a
+            unique sample sequence is generated.
         """
 
         # validation
@@ -961,8 +979,8 @@ class FixedDistribution:
     A degenerate distribution that always returns the same fixed value.
     Useful for constants or deterministic parameters in models.
 
-    This class conforms to the Distribution protocol and provides methods to sample
-    a constant value regardless of the number of samples requested.
+    This class conforms to the Distribution protocol and provides methods to
+    sample a constant value regardless of the number of samples requested.
     """
 
     def __init__(self, value: float):
@@ -1013,11 +1031,12 @@ class CombinationDistribution:
     """
     Combination distribution implementation.
 
-    A distribution that combines (sums) samples from multiple underlying distributions.
-    Useful for modeling compound effects or building complex distributions from simpler ones.
+    A distribution that combines (sums) samples from multiple underlying
+    distributions. Useful for modeling compound effects or building complex
+    distributions from simpler ones.
 
-    This class conforms to the Distribution protocol and provides methods to sample
-    a combination of values from multiple distributions.
+    This class conforms to the Distribution protocol and provides methods to
+    sample a combination of values from multiple distributions.
     """
 
     def __init__(self, *dists: Distribution):
@@ -1028,7 +1047,8 @@ class CombinationDistribution:
         ----------
         *dists : Sequence[Distribution]
             Variable length sequence of Distribution objects to combine.
-            The sample method will return the sum of samples from all these distributions.
+            The sample method will return the sum of samples from all these
+            distributions.
         """
         self.dists = dists
 
@@ -1051,14 +1071,16 @@ class CombinationDistribution:
             The number/shape of samples to generate:
             - If None: returns a single combined sample as a float
             - If int: returns a 1-D array with that many combined samples
-            - If tuple of ints: returns an array with that shape of combined samples
+            - If tuple of ints: returns an array with that shape of combined
+              samples
 
         Returns
         -------
         Union[float, NDArray[np.float64]]
             Random samples from the combination distribution:
             - A single float (sum of component samples) when size is None
-            - A numpy array of combined samples with shape determined by size parameter
+            - A numpy array of combined samples with shape determined by size
+              parameter
         """
         total = 0.0 if size is None else np.zeros(size)
 
@@ -1076,8 +1098,8 @@ class GroupedContinuousEmpirical:
     bounds of a discrete distribution. Useful for modeling empirical data with
     a continuous approximation.
 
-    This class conforms to the Distribution protocol and provides methods to sample
-    from a continuous empirical distribution.
+    This class conforms to the Distribution protocol and provides methods to
+    sample from a continuous empirical distribution.
     """
 
     def __init__(
@@ -1102,8 +1124,8 @@ class GroupedContinuousEmpirical:
             Frequency of observations between bounds.
 
         random_seed : Optional[Union[int, SeedSequence]], default=None
-            A random seed or SeedSequence to reproduce samples. If None, a unique
-            sample sequence is generated.
+            A random seed or SeedSequence to reproduce samples. If None, a
+            unique sample sequence is generated.
         """
         self.rng = np.random.default_rng(random_seed)
         self.lower_bounds = np.asarray(lower_bounds)
@@ -1121,7 +1143,8 @@ class GroupedContinuousEmpirical:
             if len(self.upper_bounds) < 4
             else f"[{', '.join(str(x) for x in self.upper_bounds[:3])}, ...]"
         )
-        return f"ContinuousEmpirical(lower_bounds={lb_repr}, upper_bounds={ub_repr}, freq=...)"
+        return (f"ContinuousEmpirical(lower_bounds={lb_repr}, " +
+                f"upper_bounds={ub_repr}, freq=...)")
 
     @property
     def mean(self) -> float:
@@ -1138,15 +1161,18 @@ class GroupedContinuousEmpirical:
     @property
     def variance(self) -> float:
         """
-        Calculate the theoretical variance of the GroupedContinuousEmpirical distribution.
+        Calculate the theoretical variance of the GroupedContinuousEmpirical
+        distribution.
 
         The total variance is composed of two components:
-        1. Between-bin variance: Variance arising from the differences between bin midpoints
-        2. Within-bin variance: Additional variance from the linear interpolation within each bin
+        1. Between-bin variance: Variance arising from the differences between
+           bin midpoints
+        2. Within-bin variance: Additional variance from the linear
+           interpolation within each bin
 
-        For a linear interpolation model, the within-bin component follows the variance
-        formula for a uniform distribution: (bin_width)²/12 for each bin, weighted by
-        the bin's probability.
+        For a linear interpolation model, the within-bin component follows the
+        variance formula for a uniform distribution: (bin_width)²/12 for each
+        bin, weighted by the bin's probability.
 
         Returns
         -------
@@ -1155,19 +1181,20 @@ class GroupedContinuousEmpirical:
 
         Notes
         -----
-        This calculation provides the exact theoretical variance of a 
-        continuous distribution created through linear interpolation between 
-        grouped data points. The formula accounts for both the positioning of 
+        This calculation provides the exact theoretical variance of a
+        continuous distribution created through linear interpolation between
+        grouped data points. The formula accounts for both the positioning of
         the groups and the additional variance introduced by the
         interpolation process itself.
 
-        Simple variance calculations that only consider bin midpoints 
-        will underestimate the true variance of the 
+        Simple variance calculations that only consider bin midpoints
+        will underestimate the true variance of the
         interpolated distribution.
 
         Example
         -------
-        >>> dist = GroupedContinuousEmpirical([0, 1, 2], [1, 2, 3], [10, 20, 30])
+        >>> dist = GroupedContinuousEmpirical([0, 1, 2], [1, 2, 3],
+                                              [10, 20, 30])
         >>> dist.variance()
         0.6388888888888888
         """
@@ -1232,7 +1259,8 @@ class GroupedContinuousEmpirical:
         if size is None:
             size = 1
 
-        # Handle the case where size is a tuple - convert to total number of samples
+        # Handle the case where size is a tuple - convert to total number of
+        # samples
         total_samples = size if isinstance(size, int) else np.prod(size)
 
         samples = []
@@ -1269,27 +1297,25 @@ class GroupedContinuousEmpirical:
             result = result.reshape(size)
         return result
 
-import plotly.graph_objects as go 
-import plotly.express as px
 
 @DistributionRegistry.register()
 class RawContinuousEmpirical:
     """
-    Continuous Empirical Distribution for Raw Data using Law and Kelton's method.
+    Continuous Empirical Distribution for Raw Data using Law and Kelton's
+    method.
 
-    A distribution that performs linear interpolation between data points according to 
-    the algorithm described in Law & Kelton's "Simulation Modeling and Analysis". The 
-    implementation follows a two-step approach:
+    A distribution that performs linear interpolation between data points
+    according to the algorithm described in Law & Kelton's "Simulation Modeling
+    and Analysis". The implementation follows a two-step approach:
 
     1. Generate U ~ Uniform(0, 1), calculate P = (n-1)U, and I = int(P) + 1
     2. Return X_I + (P-I)(X_{I+1} - X_I)
 
-    This approach ensures proper weighting across intervals and is suitable for both
-    Monte Carlo and discrete-event simulation applications.
+    This approach ensures proper weighting across intervals and is suitable for
+    both Monte Carlo and discrete-event simulation applications.
 
     Maximum and minimum values of the distribution are defined by the data.
     """
-
 
     def __init__(
         self,
@@ -1305,14 +1331,13 @@ class RawContinuousEmpirical:
             Raw data points to create the empirical distribution from.
 
         random_seed : Optional[Union[int, SeedSequence]], default=None
-            A random seed or SeedSequence to reproduce samples. If None, a unique
-            sample sequence is generated.
+            A random seed or SeedSequence to reproduce samples. If None, a
+            unique sample sequence is generated.
         """
         self.rng = np.random.default_rng(random_seed)
-        
+
         # Sort the data to create the ECDF
         self.data = np.sort(np.asarray(data, dtype=float))
-               
 
     def __repr__(self):
         data_repr = (
@@ -1321,7 +1346,6 @@ class RawContinuousEmpirical:
             else f"[{', '.join(str(x) for x in self.data[:3])}, ...]"
         )
         return f"ContinuousEmpirical(data={data_repr})"
-    
 
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
@@ -1345,7 +1369,6 @@ class RawContinuousEmpirical:
         U = self.rng.random(size)
         n = len(self.data)
         P = (n - 1) * U
-        
 
         if size is None:
             # single sample
@@ -1356,7 +1379,7 @@ class RawContinuousEmpirical:
             if I >= n - 1:
                 # return maximum value
                 return self.data[-1]
-            
+
             frac = P - I
             lower = self.data[I]
             upper = self.data[I + 1]
@@ -1364,13 +1387,13 @@ class RawContinuousEmpirical:
         else:
             I = P.astype(int) + 1
             # array opeations
-            mask = (I >= n - 1)
+            mask = I >= n - 1
             result = np.empty_like(P, dtype=float)
-        
+
             # Handle edge cases where I equals n-1
             if np.any(mask):
                 result[mask] = self.data[-1]
-                
+
             # Process normal cases with interpolation
             if np.any(~mask):
                 valid_I = I[~mask]
@@ -1379,7 +1402,7 @@ class RawContinuousEmpirical:
                 lower = self.data[valid_I]
                 upper = self.data[valid_I + 1]
                 result[~mask] = lower + frac * (upper - lower)
-                
+
             # return clipped to lower value
             return result.clip(min=self.data[0])
 
@@ -1389,11 +1412,11 @@ class RawContinuousEmpirical:
         xaxis_title: Optional[str] = "Data Value",
         yaxis_title: Optional[str] = "Cumulative Probability (P(X <= x))",
         line_color: Optional[str] = None,  # e.g., 'blue', '#1f77b4'
-        line_width: Optional[float] = None, # e.g., 2
+        line_width: Optional[float] = None,  # e.g., 2
         trace_name: Optional[str] = "Standard ECDF",
         showlegend: bool = True,
-        layout_options: Optional[Dict] = None # For extra fig.update_layout settings
-        ) -> go.Figure:
+        layout_options: Optional[Dict] = None
+    ) -> go.Figure:
         """
         Plots the standard Empirical Cumulative Distribution Function (ECDF)
         using Plotly, with customization options.
@@ -1404,10 +1427,11 @@ class RawContinuousEmpirical:
             The main title of the plot.
         xaxis_title : Optional[str], default="Data Value"
             The title for the x-axis.
-        yaxis_title : Optional[str], default="Cumulative Probability (P(X <= x))"
+        yaxis_title : Optional[str], default="Cumulative Probability (P(X <= x))"  # pylint: disable=line-too-long
             The title for the y-axis.
         line_color : Optional[str], default=None
-            Color of the ECDF line (Plotly default if None). Accepts CSS color names, hex codes, etc.
+            Color of the ECDF line (Plotly default if None). Accepts CSS color
+            names, hex codes, etc.
         line_width : Optional[float], default=None
             Width of the ECDF line (Plotly default if None).
         trace_name : Optional[str], default="Standard ECDF"
@@ -1429,7 +1453,8 @@ class RawContinuousEmpirical:
                 title=title,
                 xaxis_title=xaxis_title,
                 yaxis_title=yaxis_title,
-                xaxis=dict(visible=False), # Hide axes lines/ticks for empty plot
+                # Hide axes lines/ticks for empty plot
+                xaxis=dict(visible=False),
                 yaxis=dict(visible=False)
             )
             if layout_options:
@@ -1439,28 +1464,32 @@ class RawContinuousEmpirical:
         # Create the basic ECDF plot
         fig = px.ecdf(
             x=self.data,
-            # Note: px.ecdf uses 'y' internally for the probability axis label key
+            # px.ecdf uses 'y' internally for the probability axis label key
             labels={'x': xaxis_title, 'y': yaxis_title},
-            title=title # Set title via px directly
+            title=title  # Set title via px directly
         )
 
         # Apply trace customizations
         fig.update_traces(
-            selector=dict(type='scatter'), # Ensure we target the scatter trace created by px.ecdf
+            # Ensure we target the scatter trace created by px.ecdf
+            selector=dict(type='scatter'),
             name=trace_name,
             showlegend=showlegend,
             line=dict(
-                color=line_color, # Plotly handles None: uses default
+                color=line_color,  # Plotly handles None: uses default
                 width=line_width  # Plotly handles None: uses default
             )
         )
 
-        # Apply general layout updates (including potential overrides for titles/labels)
+        # Apply general layout updates (including potential overrides for
+        # titles/labels)
         fig.update_layout(
             xaxis_title=xaxis_title,
             yaxis_title=yaxis_title,
             showlegend=showlegend,
-            title=title # Explicitly set again in case user wants to override px default via layout_options
+            # Explicitly set again in case user wants to override px default
+            # via layout_options
+            title=title
         )
         # Apply any extra custom layout options
         if layout_options:
@@ -1473,18 +1502,18 @@ class RawContinuousEmpirical:
         title: Optional[str] = "Piecewise Linear CDF used by Sampler",
         xaxis_title: Optional[str] = "Data Value",
         yaxis_title: Optional[str] = "Cumulative Probability (Sampler's CDF)",
-        line_color: Optional[str] = None,   # e.g., 'green', '#2ca02c'
-        line_width: Optional[float] = None, # e.g., 2
-        marker_symbol: Optional[str] = 'circle', # e.g., 'circle', 'square', 'x', None to hide
-        marker_size: Optional[float] = 6,      # e.g., 8, None for default
-        marker_color: Optional[str] = None,  # Default: same as line, or provide specific color
+        line_color: Optional[str] = None,
+        line_width: Optional[float] = None,
+        marker_symbol: Optional[str] = 'circle',
+        marker_size: Optional[float] = 6,
+        marker_color: Optional[str] = None,
         trace_name: Optional[str] = "Piecewise Linear CDF",
         showlegend: bool = True,
-        layout_options: Optional[Dict] = None # For extra fig.update_layout settings
-        ) -> go.Figure:
+        layout_options: Optional[Dict] = None
+    ) -> go.Figure:
         """
-        Plots the piecewise linear CDF implied by the Law & Kelton sampling method
-        using Plotly, with customization options.
+        Plots the piecewise linear CDF implied by the Law & Kelton sampling
+        method using Plotly, with customization options.
 
         Parameters
         ----------
@@ -1492,14 +1521,16 @@ class RawContinuousEmpirical:
             The main title of the plot.
         xaxis_title : Optional[str], default="Data Value"
             The title for the x-axis.
-        yaxis_title : Optional[str], default="Cumulative Probability (Sampler's CDF)"
+        yaxis_title : Optional[str], default="Cumulative Probability (Sampler's CDF)"  # pylint: disable=line-too-long
             The title for the y-axis.
         line_color : Optional[str], default=None
-            Color of the line segments (Plotly default if None).
+            Color of the line segments (Plotly default if None). Examples:
+            "green", "#2ca02c".
         line_width : Optional[float], default=None
-            Width of the line segments (Plotly default if None).
+            Width of the line segments (Plotly default if None). Example: 2.
         marker_symbol : Optional[str], default='circle'
-            Symbol for markers at data points (Plotly default if None). Use None to hide markers.
+            Symbol for markers at data points (Plotly default if None). Use
+            None to hide markers. Examples: "circle", "square", "x".
         marker_size : Optional[float], default=6
             Size of the markers (Plotly default if None).
         marker_color : Optional[str], default=None
@@ -1540,7 +1571,8 @@ class RawContinuousEmpirical:
                 mode='lines+markers',
                 name=trace_name,
                 line=dict(color=line_color, width=line_width),
-                marker=dict(symbol=marker_symbol, size=marker_size, color=marker_color),
+                marker=dict(symbol=marker_symbol, size=marker_size,
+                            color=marker_color),
                 showlegend=showlegend
             ))
             fig.update_layout(
@@ -1561,22 +1593,25 @@ class RawContinuousEmpirical:
         y_linear = np.arange(n) / (n - 1)
 
         # Create the basic line plot
-        # Note: px.line doesn't directly support marker_symbol/size in the call itself
-        # We will apply marker styles via update_traces
+        # Note: px.line doesn't directly support marker_symbol/size in the call
+        # itself - we will apply marker styles via update_traces
         fig = px.line(
             x=x_linear,
             y=y_linear,
-            markers= (marker_symbol is not None), # Enable markers if symbol is specified
+            # Enable markers if symbol is specified
+            markers= (marker_symbol is not None),
             labels={'x': xaxis_title, 'y': yaxis_title},
             title=title
         )
 
         # Determine marker color (use line color if marker color not specified)
-        final_marker_color = marker_color if marker_color is not None else line_color
+        final_marker_color = (
+            marker_color if marker_color is not None else line_color)
 
         # Apply trace customizations
         fig.update_traces(
-            selector=dict(type='scatter'), # Target the scatter trace from px.line
+            # Target the scatter trace from px.line
+            selector=dict(type='scatter'),
             name=trace_name,
             showlegend=showlegend,
             line=dict(
@@ -1586,7 +1621,8 @@ class RawContinuousEmpirical:
             marker=dict(
                 symbol=marker_symbol,
                 size=marker_size,
-                color=final_marker_color # Apply potentially derived marker color
+                # Apply potentially derived marker colour
+                color=final_marker_color
                 # You could also add marker line properties here if needed:
                 # line=dict(color='black', width=1)
             )
@@ -1597,17 +1633,13 @@ class RawContinuousEmpirical:
             xaxis_title=xaxis_title,
             yaxis_title=yaxis_title,
             showlegend=showlegend,
-            title=title # Ensure title consistency
+            # Ensure title consistency
+            title=title
         )
         if layout_options:
             fig.update_layout(layout_options)
 
         return fig
-    
-   
-
-
-
 
 
 @DistributionRegistry.register()
@@ -1615,18 +1647,20 @@ class Erlang:
     """
     Erlang distribution implementation.
 
-    A continuous probability distribution that is a special case of the Gamma distribution
-    where the shape parameter is an integer. This implementation allows users to specify
-    mean and standard deviation rather than shape (k) and scale (theta) parameters.
+    A continuous probability distribution that is a special case of the Gamma
+    distribution where the shape parameter is an integer. This implementation
+    allows users to specify mean and standard deviation rather than shape (k)
+    and scale (theta) parameters.
 
-    This class conforms to the Distribution protocol and provides methods to sample
-    from an Erlang distribution with specified parameters.
+    This class conforms to the Distribution protocol and provides methods to
+    sample from an Erlang distribution with specified parameters.
 
     Notes
     -----
-    The Erlang is a special case of the gamma distribution where k is an integer.
-    Internally this is implemented using numpy Generator's gamma method. The k parameter
-    is calculated from the mean and standard deviation and rounded to an integer.
+    The Erlang is a special case of the gamma distribution where k is an
+    integer. Internally this is implemented using numpy Generator's gamma
+    method. The k parameter is calculated from the mean and standard deviation
+    and rounded to an integer.
 
     Sources
     -------
@@ -1657,8 +1691,8 @@ class Erlang:
             will be the sampled value plus this location parameter.
 
         random_seed : Optional[Union[int, SeedSequence]], default=None
-            A random seed or SeedSequence to reproduce samples. If None, a unique
-            sample sequence is generated.
+            A random seed or SeedSequence to reproduce samples. If None, a
+            unique sample sequence is generated.
         """
         for name, value in [("mean", mean), ("stdev", stdev)]:
             validate(value, name, is_numeric, is_positive)
@@ -1679,8 +1713,8 @@ class Erlang:
     def __repr__(self):
         if self.location == 0.0:
             return f"Erlang(mean={self.mean}, stdev={self.stdev})"
-        else:
-            return f"Erlang(mean={self.mean}, stdev={self.stdev}, location={self.location})"
+        return (f"Erlang(mean={self.mean}, stdev={self.stdev}, " +
+                f"location={self.location})")
 
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
@@ -1711,15 +1745,17 @@ class Weibull:
     """
     Weibull distribution implementation.
 
-    A continuous probability distribution useful for modeling time-to-failure and
-    similar phenomena. Characterized by shape (alpha) and scale (beta) parameters.
+    A continuous probability distribution useful for modeling time-to-failure
+    and similar phenomena. Characterized by shape (alpha) and scale (beta)
+    parameters.
 
-    This implementation also includes a third parameter "location" (default = 0)
+    This implementation also includes a third parameter "location" (default=0)
     to shift the distribution if a lower bound is needed.
 
     The probability density function (PDF) is:
     f(x) = (α/β) * ((x-location)/β)^(α-1) * exp(-((x-location)/β)^α)
-    for x ≥ location, where α is the shape parameter and β is the scale parameter.
+    for x ≥ location, where α is the shape parameter and β is the scale
+    parameter.
 
     The samples are generated using:
     X = scale × (-ln(U))^(1/shape) + location
@@ -1754,8 +1790,8 @@ class Weibull:
             An offset to shift the distribution from 0.
 
         random_seed : Optional[Union[int, SeedSequence]], default=None
-            A random seed or SeedSequence to reproduce samples. If None, a unique
-            sample sequence is generated.
+            A random seed or SeedSequence to reproduce samples. If None, a
+            unique sample sequence is generated.
 
         Notes
         -----
@@ -1767,7 +1803,8 @@ class Weibull:
         - Other sources define shape=beta and scale=eta (η)
         - In Python's random.weibullvariate, alpha=scale and beta=shape!
 
-        It's recommended to verify the mean and variance of samples match expectations.
+        It's recommended to verify the mean and variance of samples match
+        expectations.
         """
 
         validate(alpha, "alpha", is_numeric, is_positive)
@@ -1782,8 +1819,8 @@ class Weibull:
     def __repr__(self):
         if self.location == 0.0:
             return f"Weibull(alpha={self.shape}, beta={self.scale})"
-        else:
-            return f"Weibull(alpha={self.shape}, beta={self.scale}, location={self.location})"
+        return (f"Weibull(alpha={self.shape}, beta={self.scale}, " +
+                f"location={self.location})")
 
     @property
     def mean(self) -> float:
@@ -1844,7 +1881,8 @@ class Weibull:
 @DistributionRegistry.register()
 class Gamma:
     """
-    Gamma distribution implementation with shape (alpha) and scale (beta) parameters.
+    Gamma distribution implementation with shape (alpha) and scale (beta)
+    parameters.
 
     This class conforms to the Distribution protocol and provides methods to:
     - Calculate theoretical mean and variance
@@ -1874,8 +1912,8 @@ class Gamma:
             Offset value added to all samples.
 
         random_seed : Optional[Union[int, SeedSequence]], default=None
-            A random seed or SeedSequence to reproduce samples. If None, a unique
-            sample sequence is generated.
+            A random seed or SeedSequence to reproduce samples. If None, a
+            unique sample sequence is generated.
 
         Raises
         ------
@@ -1894,8 +1932,8 @@ class Gamma:
     def __repr__(self):
         if self.location == 0.0:
             return f"Gamma(alpha={self.alpha}, beta={self.beta})"
-        else:
-            return f"Gamma(alpha={self.alpha}, beta={self.beta}, location={self.location})"
+        return (f"Gamma(alpha={self.alpha}, beta={self.beta}, " +
+                f"location={self.location})")
 
     @property
     def mean(self) -> float:
@@ -1978,8 +2016,8 @@ class Beta:
     """
     Beta distribution implementation.
 
-    A flexible continuous probability distribution defined on the interval [0,1],
-    which can be rescaled to any arbitrary interval [min, max].
+    A flexible continuous probability distribution defined on the interval
+    [0,1], which can be rescaled to any arbitrary interval [min, max].
 
     As defined in Simulation Modeling and Analysis (Law, 2007).
 
@@ -2010,14 +2048,16 @@ class Beta:
             Second shape parameter. Must be positive.
 
         lower_bound : float, default=0.0
-            Lower bound for rescaling the distribution from [0,1] to [lower_bound, upper_bound].
+            Lower bound for rescaling the distribution from [0,1] to
+            [lower_bound, upper_bound].
 
         upper_bound : float, default=1.0
-            Upper bound for rescaling the distribution from [0,1] to [lower_bound, upper_bound].
+            Upper bound for rescaling the distribution from [0,1] to
+            [lower_bound, upper_bound].
 
         random_seed : Optional[Union[int, SeedSequence]], default=None
-            A random seed or SeedSequence to reproduce samples. If None, a unique
-            sample sequence is generated.
+            A random seed or SeedSequence to reproduce samples. If None, a
+            unique sample sequence is generated.
         """
 
         # 1. Validate shape parameters
@@ -2040,8 +2080,8 @@ class Beta:
     def __repr__(self):
         if self.min == 0.0 and self.max == 1.0:
             return f"Beta(alpha1={self.alpha1}, alpha2={self.alpha2})"
-        else:
-            return f"Beta(alpha1={self.alpha1}, alpha2={self.alpha2}, lower_bound={self.min}, upper_bound={self.max})"
+        return (f"Beta(alpha1={self.alpha1}, alpha2={self.alpha2}, " +
+                f"lower_bound={self.min}, upper_bound={self.max})")
 
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
@@ -2076,7 +2116,8 @@ class DiscreteEmpirical:
     DiscreteEmpirical distribution implementation.
 
     A probability distribution that samples values with specified frequencies.
-    Useful for modeling categorical data or discrete outcomes with known probabilities.
+    Useful for modeling categorical data or discrete outcomes with known
+    probabilities.
 
     Example uses:
     -------------
@@ -2100,12 +2141,12 @@ class DiscreteEmpirical:
             List of possible outcome values. Must be of equal length to freq.
 
         freq : ArrayLike
-            List of observed frequencies or probabilities. Must be of equal length to values.
-            These will be normalized to sum to 1.
+            List of observed frequencies or probabilities. Must be of equal
+            length to values. These will be normalized to sum to 1.
 
         random_seed : Optional[Union[int, SeedSequence]], default=None
-            A random seed or SeedSequence to reproduce samples. If None, a unique
-            sample sequence is generated.
+            A random seed or SeedSequence to reproduce samples. If None, a
+            unique sample sequence is generated.
 
         Raises
         ------
@@ -2161,7 +2202,8 @@ class DiscreteEmpirical:
         -------
         Union[Any, NDArray]
             Random samples from the discrete distribution:
-            - A single value (of whatever type was in the values array) when size is None
+            - A single value (of whatever type was in the values array) when
+              size is None
             - A numpy array of values with shape determined by size parameter
         """
         sample = self.rng.choice(self.values, p=self.probabilities, size=size)
@@ -2176,9 +2218,9 @@ class TruncatedDistribution:
     """
     Truncated Distribution implementation.
 
-    Wraps any distribution conforming to the Distribution protocol and truncates
-    samples at a specified lower bound. No resampling is performed; the class simply
-    ensures no values are below the lower bound.
+    Wraps any distribution conforming to the Distribution protocol and
+    truncates samples at a specified lower bound. No resampling is performed;
+    the class simply ensures no values are below the lower bound.
 
     This class itself conforms to the Distribution protocol.
     """
@@ -2190,17 +2232,20 @@ class TruncatedDistribution:
         Parameters
         ----------
         dist_to_truncate : Distribution
-            Any object conforming to the Distribution protocol that generates samples.
+            Any object conforming to the Distribution protocol that generates
+            samples.
 
         lower_bound : float
-            Truncation point. Any samples below this value will be set to this value.
+            Truncation point. Any samples below this value will be set to this
+            value.
         """
         validate(lower_bound, is_numeric)
         self.dist = dist_to_truncate
         self.lower_bound = lower_bound
 
     def __repr__(self):
-        return f"TruncatedDistribution(dist_to_truncate={repr(self.dist)}, lower_bound={self.lower_bound})"
+        return (f"TruncatedDistribution(dist_to_truncate={repr(self.dist)}, " +
+                f"lower_bound={self.lower_bound})")
 
     def sample(
         self, size: Optional[Union[int, Tuple[int, ...]]] = None
@@ -2243,8 +2288,8 @@ class RawDiscreteEmpirical:
     """
     Raw Empirical distribution implementation.
 
-    Samples with replacement from a list of empirical values. Useful when no theoretical
-    distribution fits the observed data well.
+    Samples with replacement from a list of empirical values. Useful when no
+    theoretical distribution fits the observed data well.
 
     This class conforms to the Distribution protocol.
     """
@@ -2263,13 +2308,13 @@ class RawDiscreteEmpirical:
             List of empirical sample values to sample from with replacement.
 
         random_seed : Optional[Union[int, SeedSequence]], default=None
-            A random seed or SeedSequence to reproduce samples. If None, a unique
-            sample sequence is generated.
+            A random seed or SeedSequence to reproduce samples. If None, a
+            unique sample sequence is generated.
 
         Notes
         -----
-        If the sample size is small, consider whether the upper and lower limits
-        in the raw data are representative of the real-world system.
+        If the sample size is small, consider whether the upper and lower
+        limits in the raw data are representative of the real-world system.
         """
         self.rng = np.random.default_rng(random_seed)
         self.values = np.asarray(values)
@@ -2281,12 +2326,12 @@ class RawDiscreteEmpirical:
             else f"[{', '.join(str(x) for x in self.values[:3])}, ...]"
         )
         return f"RawEmpirical(values={values_repr})"
-    
+
     @property
     def mean(self) -> float:
         """Calculate the theoretical mean of the distribution."""
         return np.mean(self.values)
-    
+
     @property
     def variance(self) -> float:
         """Calculate the theoretical variance of the distribution."""
@@ -2315,7 +2360,8 @@ class RawDiscreteEmpirical:
         """
         samples = self.rng.choice(self.values, size)
 
-        # Ensure we return a scalar if size is None, not an array with one element
+        # Ensure we return a scalar if size is None, not an array with one
+        # element
         if size is None:
             return samples.item()
         return samples
@@ -2346,8 +2392,8 @@ class PearsonV:
     [1] https://riskwiki.vosesoftware.com/PearsonType5distribution.php
     [2] https://modelassist.epixanalytics.com/display/EA/Pearson+Type+5
 
-    Notes:
-    ------
+    Note
+    ----
     A good R package for Pearson distributions is PearsonDS
     https://www.rdocumentation.org/packages/PearsonDS/versions/1.3.0
     """
@@ -2370,8 +2416,8 @@ class PearsonV:
             Scale parameter. Must be > 0.
 
         random_seed : Optional[Union[int, SeedSequence]], default=None
-            A random seed or SeedSequence to reproduce samples. If None, a unique
-            sample sequence is generated.
+            A random seed or SeedSequence to reproduce samples. If None, a
+            unique sample sequence is generated.
 
         Raises
         ------
@@ -2480,8 +2526,8 @@ class PearsonVI:
     --------
     [1] https://riskwiki.vosesoftware.com/PearsonType6distribution.php
 
-    Notes:
-    ------
+    Note
+    ----
     A good R package for Pearson distributions is PearsonDS
     https://www.rdocumentation.org/packages/PearsonDS/versions/1.3.0
     """
@@ -2508,8 +2554,8 @@ class PearsonVI:
             Scale parameter. Must be > 0.
 
         random_seed : Optional[Union[int, SeedSequence]], default=None
-            A random seed or SeedSequence to reproduce samples. If None, a unique
-            sample sequence is generated.
+            A random seed or SeedSequence to reproduce samples. If None, a
+            unique sample sequence is generated.
 
         Raises
         ------
@@ -2526,7 +2572,8 @@ class PearsonVI:
         self.beta = beta
 
     def __repr__(self):
-        return f"PearsonVI(alpha1={self.alpha1}, alpha2={self.alpha2}, beta={self.beta})"
+        return (f"PearsonVI(alpha1={self.alpha1}, alpha2={self.alpha2}, " +
+                f"beta={self.beta})")
 
     @property
     def mean(self) -> float:
@@ -2631,8 +2678,8 @@ class ErlangK:
             the returned value = sample[Erlang] + location
 
         random_seed : Optional[Union[int, SeedSequence]], default=None
-            A random seed or SeedSequence to reproduce samples. If None, a unique
-            sample sequence is generated.
+            A random seed or SeedSequence to reproduce samples. If None, a
+            unique sample sequence is generated.
 
         Raises
         ------
@@ -2657,8 +2704,8 @@ class ErlangK:
     def __repr__(self):
         if self.location == 0.0:
             return f"ErlangK(k={self.k}, theta={self.theta})"
-        else:
-            return f"ErlangK(k={self.k}, theta={self.theta}, location={self.location})"
+        return (f"ErlangK(k={self.k}, theta={self.theta}, " +
+                f"location={self.location})")
 
     @property
     def mean(self) -> float:
@@ -2723,8 +2770,8 @@ class Poisson:
             Mean number of events in time period.
 
         random_seed : Optional[Union[int, SeedSequence]], default=None
-            A random seed or SeedSequence to reproduce samples. If None, a unique
-            sample sequence is generated.
+            A random seed or SeedSequence to reproduce samples. If None, a
+            unique sample sequence is generated.
         """
         validate(rate, "rate", is_numeric, is_positive)
         self.rng = np.random.default_rng(random_seed)
@@ -2774,10 +2821,12 @@ class Hyperexponential:
 
     1. Have a simple issue (resolved quickly with rate λ₁) with probability p₁
 
-    2. Have a complex issue (requiring longer service with rate λ₂) with probability p₂
+    2. Have a complex issue (requiring longer service with rate λ₂) with
+    probability p₂
 
-    This class conforms to the Distribution protocol and provides methods to sample
-    from a hyperexponential distribution with specified phase probabilities and rates.
+    This class conforms to the Distribution protocol and provides methods to
+    sample from a hyperexponential distribution with specified phase
+    probabilities and rates.
     """
 
     def __init__(
@@ -2792,16 +2841,16 @@ class Hyperexponential:
         Parameters
         ----------
         probs : ArrayLike
-            The probabilities (weights) of selecting each exponential component.
-            Must sum to 1.0.
+            The probabilities (weights) of selecting each exponential
+            component. Must sum to 1.0.
 
         rates : ArrayLike
             The rate parameters for each exponential component.
             Must be positive and same length as probs.
 
         random_seed : Optional[Union[int, SeedSequence]], default=None
-            A random seed or SeedSequence to reproduce samples. If None, a unique
-            sample sequence is generated.
+            A random seed or SeedSequence to reproduce samples. If None, a
+            unique sample sequence is generated.
         """
         self.rng = np.random.default_rng(random_seed)
 
