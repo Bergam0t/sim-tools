@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Consistent identifier (represents all versions, resolves to latest): [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4553641.svg)](https://doi.org/10.5281/zenodo.4553641)
 
-## UNRELEASED (will be v0.9.0)
+## [v0.9.0](https://github.com/TomMonks/sim-tools/releases/tag/v0.9.0)  [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15256118.svg)](https://doi.org/10.5281/zenodo.15256118)
 
 ### Added
 
@@ -34,14 +34,13 @@ Consistent identifier (represents all versions, resolves to latest): [![DOI](htt
 * BREAKING: `ContinuousEmpirical` -> GroupedContinuousEmpirical`. To clarify the purpose of the emprical distribution
 * BREAKING: `NSPPThinning`: class now only requires "mean_iat" column in `data`. Acceptance/rejection calcualted using $iat_{min} / iat_(t)$
 
-
 ### Fixed
 
 * `Gamma` fix of the calculation of the mean based on alpha and beta.
 * `GroupedContinuousEmpirical`: silent bug when `u` selects the first group.  Interpolation did not work correctly and sampled out of range. This now been handled by logic pre-sample.
 * `NSPPThinning`: removed redundant outer loop from sampling.
 
-## [v0.8.0](https://github.com/TomMonks/sim-tools/releases/tag/v0.8.0a)
+## [v0.8.0](https://github.com/TomMonks/sim-tools/releases/tag/v0.8.0a) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15041282.svg)](https://doi.org/10.5281/zenodo.15041282)
 
 ### Added
 
@@ -141,17 +140,17 @@ Consistent identifier (represents all versions, resolves to latest): [![DOI](htt
 
 ## [v0.3.2](https://github.com/TomMonks/sim-tools/releases/tag/v0.3.2) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10625581.svg)](https://doi.org/10.5281/zenodo.10625581)
 
-## Changed 
+### Changed 
 
 * Update Github action to publish to pypi. Use setuptools instead of build
 
 ## [v0.3.1](https://github.com/TomMonks/sim-tools/releases/tag/v0.3.1) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10625470.svg)](https://doi.org/10.5281/zenodo.10625470)
 
-### Fixed:
+### Fixed
 
 * PYPI has deprecated username and password. PYPI Publish Github action no works with API Token
 
-## [v0.3.0](https://github.com/TomMonks/sim-tools/releases/tag/v0.3.0)
+## [v0.3.0](https://github.com/TomMonks/sim-tools/releases/tag/v0.3.0) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10625096.svg)](https://doi.org/10.5281/zenodo.10625096)
 
 ### Added
 
@@ -175,14 +174,14 @@ Consistent identifier (represents all versions, resolves to latest): [![DOI](htt
 * Updated test suite for distributions and thinning
 * Basic Jupyterbook of documentation.
 
-## [v0.2.1](https://github.com/TomMonks/sim-tools/releases/tag/v0.2.1)
+## [v0.2.1](https://github.com/TomMonks/sim-tools/releases/tag/v0.2.1) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10201794.svg)](https://doi.org/10.5281/zenodo.10201794)
 
 ### Fixed
 
 * Modified Setup tools to avoid numpy import error on build.
 * Updated github action to use up to date actions.
 
-## v0.2.0 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10201726.svg)](https://doi.org/10.5281/zenodo.10201726)
+## [v0.2.0](https://github.com/TomMonks/sim-tools/releases/tag/v0.2.0) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10201726.svg)](https://doi.org/10.5281/zenodo.10201726)
 
 ### Added
 
