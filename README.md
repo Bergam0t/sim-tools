@@ -68,7 +68,7 @@ mamba install sim-tools
 
 ## Citation
 
-If you use sim0tools for research, a practical report, education or any reason please include the following citation.
+If you use sim-tools for research, a practical report, education or any reason please include the following citation.
 
 > Monks, Thomas. (2021). sim-tools: tools to support the forecasting process in python. Zenodo. http://doi.org/10.5281/zenodo.4553642
 
@@ -119,3 +119,5 @@ To lint the repository, run:
 ```
 bash lint.sh
 ```
+
+NumPy style docstrings are used.
