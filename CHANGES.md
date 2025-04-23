@@ -17,6 +17,7 @@ Consistent identifier (represents all versions, resolves to latest): [![DOI](htt
 ### Changed
 
 * Adjusted docstrings to use a more consistent NumPy style.
+* Some linting of `distributions.py`.
 
 ## [v0.9.0](https://github.com/TomMonks/sim-tools/releases/tag/v0.9.0)  [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15256118.svg)](https://doi.org/10.5281/zenodo.15256118)
 
