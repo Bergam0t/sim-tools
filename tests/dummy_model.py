@@ -13,7 +13,7 @@ class DummySimulationModel():
         """
         Initialises the dummy model.
 
-        Parameters:
+        Parameters
         ----------
         mean: float, optional (default=100)
             Mean for the normal distribution.
@@ -28,14 +28,14 @@ class DummySimulationModel():
         """
         Simulate a single replication with controlled randomness.
 
-        Parameters:
+        Parameters
         ----------
         replication_number: int
             Dummy replication number, used as random seed when sampling from
             the normal distribution.
 
-        Returns:
-        --------
+        Returns
+        -------
             float
         """
         return np.random.default_rng(replication_number).normal(

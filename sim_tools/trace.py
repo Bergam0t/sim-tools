@@ -51,7 +51,7 @@ class Traceable(ABC):
         """
         Initialise Traceable
 
-        Parameters:
+        Parameters
         ----------
         debug: bool, Optional (default=False)
             show trace(True). do not show trace (False)
@@ -90,7 +90,7 @@ class Traceable(ABC):
 
         Implemented with the rich library Console() object.
 
-        Parameters:
+        Parameters
         ----------
         time: float
             The simulation time
@@ -153,22 +153,22 @@ def trace(
 
     Implemented with the rich library Console() object.
 
-    Parameters:
+    Parameters
     ----------
     time: float
-        The simulation time
+        The simulation time.
 
     debug: bool, Optional (default=False)
-        show trace(True). do not show trace (False)
+        show trace(True). do not show trace (False).
 
     msg: str, Optional (default=None)
-        Event message to display to user
+        Event message to display to user.
 
     identifier: str, Optional (default=None)
-        Display an unique identifier for the trace message
+        Display an unique identifier for the trace message.
 
     config: dict, Optional (default=None)
-        If None then default colouring is applied to a message
+        If None then default colouring is applied to a message.
         Options (with corresponding defaults) include:
 
             "name":None,

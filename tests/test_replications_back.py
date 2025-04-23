@@ -24,8 +24,8 @@ def test_ci_method(mean, std_dev, expected_n_reps):
     Use DummySimulationModel to check that results from
     confidence_interval_method are consistent with those previously generated.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     mean: float
         Mean for the normal distribution in the dummy model.
     std_dev: float
@@ -58,8 +58,8 @@ def test_algorithm(mean, std_dev, expected_n_reps):
     Use DummySimulationModel to check that results from ReplicationsAlgorithm
     are consistent with those previously generated.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     mean: float
         Mean for the normal distribution in the dummy model.
     std_dev: float

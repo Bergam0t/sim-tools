@@ -16,15 +16,13 @@ PATH_NSPP_1 = Path(__file__).parent.joinpath("data", FILE_NAME_NSPP_1)
 
 def load_banks_et_al_nspp() -> pd.DataFrame:
     '''
-    Load example Non-stationary poisson process
-    data from Banks et al.
+    Load example Non-stationary poisson process data from Banks et al.
 
-    The function reads in the mean inter-arrival
-    times by interval.  The arrival rate (1/mean_iat)
-    is calculated.
+    The function reads in the mean inter-arrival times by interval.
+    The arrival rate (1/mean_iat) is calculated.
 
-    Returns:
-    --------
+    Returns
+    -------
     pandas.DataFrame
     '''
     arrivals = pd.read_csv(PATH_NSPP_1)
