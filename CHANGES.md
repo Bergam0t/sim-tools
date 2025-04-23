@@ -2,10 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Dates formatted as YYYY-MM-DD as per [ISO standard](https://www.iso.org/iso-8601-date-and-time-format.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Dates formatted as YYYY-MM-DD as per [ISO standard](https://www.iso.org/iso-8601-date-and-time-format.html).
 
 Consistent identifier (represents all versions, resolves to latest): [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4553641.svg)](https://doi.org/10.5281/zenodo.4553641)
+
+## Unreleased
+
+### Added
+
+* Add unit tests for all distributions which check it uses the base class, data types and sample size are correct, that the sample mean looks right, and that the random seed is working. Some similar tests existed, but they did not cover all distributions.
+* Add some specific tests for `Lognormal` and `DiscreteEmpirical`.
+* Add back tests for all distributions (which check that new samples are equal to those generated previously, when random seed controlled).
+
+### Changed
+
+* Adjusted docstrings to use a more consistent NumPy style.
 
 ## [v0.9.0](https://github.com/TomMonks/sim-tools/releases/tag/v0.9.0)  [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15256118.svg)](https://doi.org/10.5281/zenodo.15256118)
 
