@@ -1,0 +1,83 @@
+project:
+  type: website
+  render:
+    - 00_front_page.ipynb
+    - 01_sampling/01_distributions_examples.ipynb
+    - 01_sampling/02_empirical_distributions.ipynb
+    - 01_sampling/03_distributions_registry.ipynb
+    - 01_sampling/04_time_dependent_examples.ipynb
+    - 03_trace/01_simple_trace.ipynb
+    - 03_trace/01_model.ipynb
+    - 04_replications/01_automated_reps.ipynb
+    - 02_ovs/03_sw21_tutorial.ipynb
+    - changes.ipynb
+
+website:
+  title: "sim-tools docs"
+  repo-url: https://github.com/TomMonks/sim-tools
+  repo-actions: [edit, issue]
+  sidebar:
+    logo: img/simtools_logo_notext.png
+    style: "docked"
+    search: true
+    contents:
+      - section: "Sampling"
+        contents:
+          - 01_sampling/01_distributions_examples.ipynb
+          - 01_sampling/02_empirical_distributions.ipynb
+          - 01_sampling/03_distributions_registry.ipynb
+          - 01_sampling/04_time_dependent_examples.ipynb
+      - section: "Debugging"
+        contents:
+          - 03_trace/01_simple_trace.ipynb
+          - 03_trace/01_model.ipynb
+      - section: "Output Analysis"
+        contents:
+          - 04_replications/01_automated_reps.ipynb
+      - section: "Optimisation"
+        contents:
+          - 02_ovs/03_sw21_tutorial.ipynb
+      - section: "Release History"
+        contents:
+          - changes.ipynb
+    tools:
+      - icon: github
+        menu:
+          - text: Source Code
+            url: https://github.com/TomMonks/sim-tools
+          - text: Report a Bug
+            url: https://github.com/TomMonks/sim-tools/issues
+      - icon: rocket-takeoff-fill
+        menu:
+          - text: Launch in Binder
+            url: https://mybinder.org/v2/gh/TomMonks/sim-tools/main
+          - text: Open in Colab
+            url: https://colab.research.google.com/github/TomMonks/sim-tools
+  page-navigation: true
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+
+metadata:
+  author: Thomas Monks
+  email: t.m.w.monks@exeter.ac.uk
+  description: "sim-tools documentation"
+
+execute:
+  enabled: true
+  timeout: -1
+  cache: true
+  notebook-interface: jupyterlab
+
+jupyter: python3
+
+# Enable math extensions (as in MyST amsmath)
+filters:
+  - amsmath
+
+# Custom MathJax path (optional, if needed)
+# format:
+#   html:
+#     mathjax: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
