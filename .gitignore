@@ -1,5 +1,9 @@
 # jupyter-book build folder for docs
 docs/_build/*
+docs/.quarto/
+docs/_site/
+
+.jupyter_cache/
 
 # vscode
 .vscode/
