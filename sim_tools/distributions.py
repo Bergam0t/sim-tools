@@ -2151,7 +2151,7 @@ class DiscreteEmpirical:
         Raises
         ------
         TypeError
-            If values or freq are not positive arrays
+            If freq is not a positive array.
         ValueError
             If values and freq have different lengths.
         """
@@ -2160,7 +2160,6 @@ class DiscreteEmpirical:
         self.values = np.asarray(values)
         self.freq = np.asarray(freq)
 
-        validate(self.values, "values", is_positive_array)
         validate(self.freq, "freq", is_positive_array)
 
         if len(self.values) != len(self.freq):
