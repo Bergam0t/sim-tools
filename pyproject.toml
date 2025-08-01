@@ -11,12 +11,16 @@ license = "MIT"
 requires-python = ">=3.10"
 authors = [
     { name = "Thomas Monks", email = "t.m.w.monks@exeter.ac.uk" },
+    { name = "Amy Heather", email = "A.Heather2@exeter.ac.uk" },
+    { name = "Alison Harper", email = "A.L.Harper@exeter.ac.uk" },
 ]
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
     "matplotlib>=3.1.3",
