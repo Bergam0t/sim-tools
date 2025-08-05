@@ -44,7 +44,8 @@ class NSPPThinning:
 
         interval_width: float, optional (default=None)
             The width of each time interval. If None, it will be calculated
-            from consecutive time points in the data. Required if data has only one row.
+            from consecutive time points in the data. Required if data has only
+            one row.
 
         random_seed1: int | SeedSequence, optional (default=None)
             Random seed for the exponential distribution
@@ -57,7 +58,7 @@ class NSPPThinning:
         self.arr_rng = np.random.default_rng(random_seed1)
         self.thinning_rng = np.random.default_rng(random_seed2)
 
-        # Find the minimum mean IAT (which corresponds to the maximum arrival rate)
+        # Find the minimum mean IAT (corresponds to the maximum arrival rate)
         self.min_iat = data["mean_iat"].min()
 
         if self.min_iat <= 0:
@@ -85,7 +86,10 @@ class NSPPThinning:
             data_str = data_str[:max_len] + "..."
 
         # Return class name with both data and interval information
-        return f"{self.__class__.__name__}(data={data_str}, interval={self.interval})"
+        return (
+            f"{self.__class__.__name__}(data={data_str}, " +
+            f"interval={self.interval})"
+        )
 
     def sample(self, simulation_time: float) -> float:
         """
@@ -184,7 +188,8 @@ def nspp_simulation(
         # if no run length has been set....
         if run_length is None:
             run_length = (
-                arrival_profile["t"].iloc[len(arrival_profile) - 1] + nspp_rng.interval
+                arrival_profile["t"].iloc[len(arrival_profile) - 1] +
+                nspp_rng.interval
             )
 
         # list - each item is an interval in the arrival profile
@@ -197,8 +202,9 @@ def nspp_simulation(
             if simulation_time < run_length:
                 # data collection: add one to count for hour of the day
                 # note list NSPPThinning this assume equal intervals
-                interval_of_day = int(simulation_time // nspp_rng.interval) % len(
-                    arrival_profile
+                interval_of_day = (
+                    int(simulation_time // nspp_rng.interval) %
+                    len(arrival_profile)
                 )
                 interval_samples[interval_of_day] += 1
 
@@ -246,7 +252,8 @@ def nspp_plot(
     # is it a dataframe
     if not isinstance(arrival_profile, pd.DataFrame):
         raise ValueError(
-            f"arrival_profile expected pd.DataFrame " + f"got {type(arrival_profile)}"
+            "arrival_profile expected pd.DataFrame " +
+            f"got {type(arrival_profile)}"
         )
 
     # all columns are present
@@ -274,7 +281,9 @@ def nspp_plot(
 
     # plot in this case returns a 2D line plot object
     _ = ax.plot(arrival_profile["t"], interval_means, label="Mean")
-    _ = ax.fill_between(arrival_profile["t"], lower, upper, alpha=0.2, label="+-1SD")
+    _ = ax.fill_between(
+        arrival_profile["t"], lower, upper, alpha=0.2, label="+-1SD"
+    )
 
     # chart appearance
     _ = ax.legend(loc="best", ncol=3)
