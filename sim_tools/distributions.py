@@ -355,6 +355,7 @@ class DistributionRegistry:
         cls,
         config: Union[List[Dict], Dict[str, Dict]],
         main_seed: Optional[int] = None,
+        sort: Optional[bool] = True
     ) -> Union[List, Dict]:
         """
         Create multiple distributions from a configuration dictionary or list.
@@ -369,6 +370,10 @@ class DistributionRegistry:
         main_seed : Optional[int], default=None
             Master seed to generate individual seeds for each distribution.
             If None, random seeds will still be generated for independence.
+        sort : Optional[bool], default=True
+            If True and config is dict, sort configs before assigning seeds,
+            ensuring deterministic results if the config key order changes. Not
+            relevant for lists as they are unnamed.
 
         Returns
         -------
@@ -384,34 +389,29 @@ class DistributionRegistry:
         """
         # Handle list configuration
         if isinstance(config, list):
-            # spawn seeds for non-overlapping streams
+            # Spawn seeds for non-overlapping streams
             seeds = spawn_seeds(len(config), main_seed)
-
             # Create distribution instances
-            result = []
-            for i, dist_config in enumerate(config):
-                params = dist_config["params"].copy()
-                params["random_seed"] = seeds[i]
-                dist = cls.create(dist_config["class_name"], **params)
-                result.append(dist)
-            return result
+            return [
+                cls.create(item["class_name"],
+                           **{**item["params"], "random_seed": seeds[i]})
+                for i, item in enumerate(config)
+            ]
 
         # Handle dictionary configuration
         if isinstance(config, dict):
-            # Get all configuration items
+            # Get and sort the configuration items
             items = list(config.items())
-
-            # spawn seeds for non-overlapping streams
+            if sort:
+                items = sorted(items, key=lambda kv: kv[0])
+            # Spawn seeds for non-overlapping streams
             seeds = spawn_seeds(len(items), main_seed)
-
             # Create distribution instances
-            result = {}
-            for i, (name, dist_config) in enumerate(items):
-                params = dist_config["params"].copy()
-                params["random_seed"] = seeds[i]
-                dist = cls.create(dist_config["class_name"], **params)
-                result[name] = dist
-            return result
+            return {
+                name: cls.create(item["class_name"],
+                                 **{**item["params"], "random_seed": seeds[i]})
+                for i, (name, item) in enumerate(items)
+            }
 
         raise TypeError("Configuration must be a list or dictionary")
 
