@@ -241,15 +241,19 @@ def test_truncated_min(n, lower_bound):
     """
     Check that samples from the TruncatedDistribution do not fall below the
     specified lower bound.
-
-    Parameters
-    ----------
-    n: int
-        Number of samples to generate from the distribution.
-    lower_bound: float
-        The lower bound value that should be enforced by the truncated
-        distribution.
     """
     d1 = dists.Normal(10, 1, random_seed=SEED_1)
     d2 = dists.TruncatedDistribution(d1, lower_bound=lower_bound)
     assert min(d2.sample(size=n)) >= lower_bound
+
+
+def test_registry_batch_sorting():
+    """Check that DistributionRegistry.create_batch() sorting works."""
+    d_config = {
+        "b_dist": {"class_name": "Exponential", "params": {"mean": 1}},
+        "a_dist": {"class_name": "Exponential", "params": {"mean": 1}}
+    }
+    sorted = dists.DistributionRegistry.create_batch(d_config, sort=True)
+    unsorted = dists.DistributionRegistry.create_batch(d_config, sort=False)
+    assert list(sorted.keys()) == ["a_dist", "b_dist"]
+    assert list(unsorted.keys()) == ["b_dist", "a_dist"]
