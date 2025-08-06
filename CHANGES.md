@@ -10,8 +10,9 @@ Consistent identifier (represents all versions, resolves to latest): [![DOI](htt
 
 ### Added
 
-* Added `sort` argument to `DistributionRegistry.create_batch()` for dict inputs, ensuring deterministic results if the config key order changes.
-* Added tests for the new `sort` argument.
+* Add `sort` argument to `DistributionRegistry.create_batch()` for dict inputs, ensuring deterministic results if the config key order changes.
+* Add `_validate_and_create()` to `DistributionRegistry` which checks that the distribution configurations are dictionaries with only two keys: "class_name" and "params".
+* Add tests for the new `sort` argument and `_validate_and_create()` method.
 
 ### Changed
 
