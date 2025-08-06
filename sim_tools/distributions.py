@@ -355,6 +355,7 @@ class DistributionRegistry:
         cls,
         config: Union[List[Dict], Dict[str, Dict]],
         main_seed: Optional[int] = None,
+        sort: Optional[bool] = True
     ) -> Union[List, Dict]:
         """
         Create multiple distributions from a configuration dictionary or list.
@@ -369,6 +370,10 @@ class DistributionRegistry:
         main_seed : Optional[int], default=None
             Master seed to generate individual seeds for each distribution.
             If None, random seeds will still be generated for independence.
+        sort : Optional[bool], default=True
+            If True and config is dict, sort configs before assigning seeds,
+            ensuring deterministic results if the config key order changes. Not
+            relevant for lists as they are unnamed.
 
         Returns
         -------
@@ -382,38 +387,71 @@ class DistributionRegistry:
         TypeError
             If config is neither a list nor a dictionary
         """
-        # Handle list configuration
         if isinstance(config, list):
-            # spawn seeds for non-overlapping streams
             seeds = spawn_seeds(len(config), main_seed)
+            return [
+                cls._validate_and_create(dist_config, seeds[i])
+                for i, dist_config in enumerate(config)
+            ]
 
-            # Create distribution instances
-            result = []
-            for i, dist_config in enumerate(config):
-                params = dist_config["params"].copy()
-                params["random_seed"] = seeds[i]
-                dist = cls.create(dist_config["class_name"], **params)
-                result.append(dist)
-            return result
-
-        # Handle dictionary configuration
         if isinstance(config, dict):
-            # Get all configuration items
             items = list(config.items())
-
-            # spawn seeds for non-overlapping streams
+            if sort:
+                items = sorted(items, key=lambda kv: kv[0])
             seeds = spawn_seeds(len(items), main_seed)
-
-            # Create distribution instances
-            result = {}
-            for i, (name, dist_config) in enumerate(items):
-                params = dist_config["params"].copy()
-                params["random_seed"] = seeds[i]
-                dist = cls.create(dist_config["class_name"], **params)
-                result[name] = dist
-            return result
+            return {
+                name: cls._validate_and_create(dist_config, seeds[i])
+                for i, (name, dist_config) in enumerate(items)
+            }
 
         raise TypeError("Configuration must be a list or dictionary")
+
+    @classmethod
+    def _validate_and_create(cls, dist_config, seed):
+        """
+        Validate that each of the distribution configurations has ONLY
+        'class_name' and 'params' keys, add 'random_seed' to params, and
+        create the distribution instance.
+
+        Parameters
+        ----------
+        dist_config : dict
+            Dictionary specifying the distribution configuration. Must have
+            keys 'class_name' (str) and 'params' (dict), and no others.
+        seed : int
+            The seed to include in the distribution's parameters (as
+            'random_seed').
+
+        Returns
+        -------
+        instance
+            The created distribution instance.
+
+        Raises
+        ------
+        ValueError
+            If `dist_config` is not a dict, or does not have exactly the
+            expected keys.
+        """
+        # Check config is a dictionary
+        if not isinstance(dist_config, dict):
+            raise ValueError("Each distribution config must be a dict.")
+
+        # Require exactly 'class_name' and 'params' as keys.
+        expected_keys = {"class_name", "params"}
+        keys = set(dist_config.keys())
+        if keys != expected_keys:
+            raise ValueError(
+                "Distribution config must have ONLY the keys "
+                f"{expected_keys}. Found keys: {keys}"
+            )
+
+        # Copy params and inject the random seed.
+        params = dist_config["params"].copy()
+        params["random_seed"] = seed
+
+        # Instantiate and return the distribution object.
+        return cls.create(dist_config["class_name"], **params)
 
     @classmethod
     def get_template(cls, format="json", indent=2):
@@ -1384,27 +1422,27 @@ class RawContinuousEmpirical:
             lower = self.data[I]
             upper = self.data[I + 1]
             return max(lower + frac * (upper - lower), self.data[0])
-        else:
-            I = P.astype(int) + 1
-            # array opeations
-            mask = I >= n - 1
-            result = np.empty_like(P, dtype=float)
 
-            # Handle edge cases where I equals n-1
-            if np.any(mask):
-                result[mask] = self.data[-1]
+        I = P.astype(int) + 1
+        # array operations
+        mask = I >= n - 1
+        result = np.empty_like(P, dtype=float)
 
-            # Process normal cases with interpolation
-            if np.any(~mask):
-                valid_I = I[~mask]
-                valid_P = P[~mask]
-                frac = valid_P - valid_I
-                lower = self.data[valid_I]
-                upper = self.data[valid_I + 1]
-                result[~mask] = lower + frac * (upper - lower)
+        # Handle edge cases where I equals n-1
+        if np.any(mask):
+            result[mask] = self.data[-1]
 
-            # return clipped to lower value
-            return result.clip(min=self.data[0])
+        # Process normal cases with interpolation
+        if np.any(~mask):
+            valid_I = I[~mask]
+            valid_P = P[~mask]
+            frac = valid_P - valid_I
+            lower = self.data[valid_I]
+            upper = self.data[valid_I + 1]
+            result[~mask] = lower + frac * (upper - lower)
+
+        # return clipped to lower value
+        return result.clip(min=self.data[0])
 
     def plotly_ecdf_standard(
         self,
@@ -1454,8 +1492,8 @@ class RawContinuousEmpirical:
                 xaxis_title=xaxis_title,
                 yaxis_title=yaxis_title,
                 # Hide axes lines/ticks for empty plot
-                xaxis=dict(visible=False),
-                yaxis=dict(visible=False)
+                xaxis={"visible": False},
+                yaxis={"visible": False}
             )
             if layout_options:
                 fig.update_layout(layout_options)
@@ -1465,20 +1503,20 @@ class RawContinuousEmpirical:
         fig = px.ecdf(
             x=self.data,
             # px.ecdf uses 'y' internally for the probability axis label key
-            labels={'x': xaxis_title, 'y': yaxis_title},
+            labels={"x": xaxis_title, "y": yaxis_title},
             title=title  # Set title via px directly
         )
 
         # Apply trace customizations
         fig.update_traces(
             # Ensure we target the scatter trace created by px.ecdf
-            selector=dict(type='scatter'),
+            selector={"type": "scatter"},
             name=trace_name,
             showlegend=showlegend,
-            line=dict(
-                color=line_color,  # Plotly handles None: uses default
-                width=line_width  # Plotly handles None: uses default
-            )
+            line={
+                "color": line_color,  # Plotly handles None: uses default
+                "width": line_width  # Plotly handles None: uses default
+            }
         )
 
         # Apply general layout updates (including potential overrides for
@@ -1504,7 +1542,7 @@ class RawContinuousEmpirical:
         yaxis_title: Optional[str] = "Cumulative Probability (Sampler's CDF)",
         line_color: Optional[str] = None,
         line_width: Optional[float] = None,
-        marker_symbol: Optional[str] = 'circle',
+        marker_symbol: Optional[str] = "circle",
         marker_size: Optional[float] = 6,
         marker_color: Optional[str] = None,
         trace_name: Optional[str] = "Piecewise Linear CDF",
@@ -1556,8 +1594,8 @@ class RawContinuousEmpirical:
                 title=title,
                 xaxis_title=xaxis_title,
                 yaxis_title=yaxis_title,
-                xaxis=dict(visible=False),
-                yaxis=dict(visible=False)
+                xaxis={"visible": False},
+                yaxis={"visible": False}
             )
             if layout_options:
                 fig.update_layout(layout_options)
@@ -1570,9 +1608,9 @@ class RawContinuousEmpirical:
                 y=[0, 1],
                 mode='lines+markers',
                 name=trace_name,
-                line=dict(color=line_color, width=line_width),
-                marker=dict(symbol=marker_symbol, size=marker_size,
-                            color=marker_color),
+                line={"color": line_color, "width": line_width},
+                marker={"symbol": marker_symbol, "size": marker_size,
+                        "color": marker_color},
                 showlegend=showlegend
             ))
             fig.update_layout(
@@ -1611,21 +1649,18 @@ class RawContinuousEmpirical:
         # Apply trace customizations
         fig.update_traces(
             # Target the scatter trace from px.line
-            selector=dict(type='scatter'),
+            selector={"type": "scatter"},
             name=trace_name,
             showlegend=showlegend,
-            line=dict(
-                color=line_color,
-                width=line_width
-            ),
-            marker=dict(
-                symbol=marker_symbol,
-                size=marker_size,
+            line={"color": line_color, "width": line_width},
+            marker={
+                "symbol": marker_symbol,
+                "size": marker_size,
                 # Apply potentially derived marker colour
-                color=final_marker_color
+                "color": final_marker_color
                 # You could also add marker line properties here if needed:
                 # line=dict(color='black', width=1)
-            )
+            }
         )
 
         # Apply general layout updates

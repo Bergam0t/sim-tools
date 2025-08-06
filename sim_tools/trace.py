@@ -86,7 +86,8 @@ class Traceable(ABC):
             msg: Optional[str] = None,
             process_id: Optional[str] = None
     ):
-        '''Display a formatted trace of a simulated event.
+        """
+        Display a formatted trace of a simulated event.
 
         Implemented with the rich library Console() object.
 
@@ -96,12 +97,11 @@ class Traceable(ABC):
             The simulation time
 
         msg: str, Optional (default=None)
-            Event message to display to user
+            Event message to display to user.
 
         process_id: str, Optional (default=None)
-            Display an unique identifer for the trace message 
-
-        '''
+            Display an unique identifer for the trace message .
+        """
         # did not initialise trace
         if not hasattr(self, '_config'):
             raise AttributeError(CONFIG_ERROR)
