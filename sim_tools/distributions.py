@@ -1384,27 +1384,27 @@ class RawContinuousEmpirical:
             lower = self.data[I]
             upper = self.data[I + 1]
             return max(lower + frac * (upper - lower), self.data[0])
-        else:
-            I = P.astype(int) + 1
-            # array opeations
-            mask = I >= n - 1
-            result = np.empty_like(P, dtype=float)
 
-            # Handle edge cases where I equals n-1
-            if np.any(mask):
-                result[mask] = self.data[-1]
+        I = P.astype(int) + 1
+        # array operations
+        mask = I >= n - 1
+        result = np.empty_like(P, dtype=float)
 
-            # Process normal cases with interpolation
-            if np.any(~mask):
-                valid_I = I[~mask]
-                valid_P = P[~mask]
-                frac = valid_P - valid_I
-                lower = self.data[valid_I]
-                upper = self.data[valid_I + 1]
-                result[~mask] = lower + frac * (upper - lower)
+        # Handle edge cases where I equals n-1
+        if np.any(mask):
+            result[mask] = self.data[-1]
 
-            # return clipped to lower value
-            return result.clip(min=self.data[0])
+        # Process normal cases with interpolation
+        if np.any(~mask):
+            valid_I = I[~mask]
+            valid_P = P[~mask]
+            frac = valid_P - valid_I
+            lower = self.data[valid_I]
+            upper = self.data[valid_I + 1]
+            result[~mask] = lower + frac * (upper - lower)
+
+        # return clipped to lower value
+        return result.clip(min=self.data[0])
 
     def plotly_ecdf_standard(
         self,
@@ -1454,8 +1454,8 @@ class RawContinuousEmpirical:
                 xaxis_title=xaxis_title,
                 yaxis_title=yaxis_title,
                 # Hide axes lines/ticks for empty plot
-                xaxis=dict(visible=False),
-                yaxis=dict(visible=False)
+                xaxis={"visible": False},
+                yaxis={"visible": False}
             )
             if layout_options:
                 fig.update_layout(layout_options)
@@ -1465,20 +1465,20 @@ class RawContinuousEmpirical:
         fig = px.ecdf(
             x=self.data,
             # px.ecdf uses 'y' internally for the probability axis label key
-            labels={'x': xaxis_title, 'y': yaxis_title},
+            labels={"x": xaxis_title, "y": yaxis_title},
             title=title  # Set title via px directly
         )
 
         # Apply trace customizations
         fig.update_traces(
             # Ensure we target the scatter trace created by px.ecdf
-            selector=dict(type='scatter'),
+            selector={"type": "scatter"},
             name=trace_name,
             showlegend=showlegend,
-            line=dict(
-                color=line_color,  # Plotly handles None: uses default
-                width=line_width  # Plotly handles None: uses default
-            )
+            line={
+                "color": line_color,  # Plotly handles None: uses default
+                "width": line_width  # Plotly handles None: uses default
+            }
         )
 
         # Apply general layout updates (including potential overrides for
@@ -1504,7 +1504,7 @@ class RawContinuousEmpirical:
         yaxis_title: Optional[str] = "Cumulative Probability (Sampler's CDF)",
         line_color: Optional[str] = None,
         line_width: Optional[float] = None,
-        marker_symbol: Optional[str] = 'circle',
+        marker_symbol: Optional[str] = "circle",
         marker_size: Optional[float] = 6,
         marker_color: Optional[str] = None,
         trace_name: Optional[str] = "Piecewise Linear CDF",
@@ -1556,8 +1556,8 @@ class RawContinuousEmpirical:
                 title=title,
                 xaxis_title=xaxis_title,
                 yaxis_title=yaxis_title,
-                xaxis=dict(visible=False),
-                yaxis=dict(visible=False)
+                xaxis={"visible": False},
+                yaxis={"visible": False}
             )
             if layout_options:
                 fig.update_layout(layout_options)
@@ -1570,9 +1570,9 @@ class RawContinuousEmpirical:
                 y=[0, 1],
                 mode='lines+markers',
                 name=trace_name,
-                line=dict(color=line_color, width=line_width),
-                marker=dict(symbol=marker_symbol, size=marker_size,
-                            color=marker_color),
+                line={"color": line_color, "width": line_width},
+                marker={"symbol": marker_symbol, "size": marker_size,
+                        "color": marker_color},
                 showlegend=showlegend
             ))
             fig.update_layout(
@@ -1611,21 +1611,18 @@ class RawContinuousEmpirical:
         # Apply trace customizations
         fig.update_traces(
             # Target the scatter trace from px.line
-            selector=dict(type='scatter'),
+            selector={"type": "scatter"},
             name=trace_name,
             showlegend=showlegend,
-            line=dict(
-                color=line_color,
-                width=line_width
-            ),
-            marker=dict(
-                symbol=marker_symbol,
-                size=marker_size,
+            line={"color": line_color, "width": line_width},
+            marker={
+                "symbol": marker_symbol,
+                "size": marker_size,
                 # Apply potentially derived marker colour
-                color=final_marker_color
+                "color": final_marker_color
                 # You could also add marker line properties here if needed:
                 # line=dict(color='black', width=1)
-            )
+            }
         )
 
         # Apply general layout updates

@@ -253,7 +253,7 @@ def test_registry_batch_sorting():
         "b_dist": {"class_name": "Exponential", "params": {"mean": 1}},
         "a_dist": {"class_name": "Exponential", "params": {"mean": 1}}
     }
-    sorted = dists.DistributionRegistry.create_batch(d_config, sort=True)
-    unsorted = dists.DistributionRegistry.create_batch(d_config, sort=False)
-    assert list(sorted.keys()) == ["a_dist", "b_dist"]
-    assert list(unsorted.keys()) == ["b_dist", "a_dist"]
+    d_sorted = dists.DistributionRegistry.create_batch(d_config, sort=True)
+    d_unsorted = dists.DistributionRegistry.create_batch(d_config, sort=False)
+    assert list(d_sorted.keys()) == ["a_dist", "b_dist"]
+    assert list(d_unsorted.keys()) == ["b_dist", "a_dist"]
