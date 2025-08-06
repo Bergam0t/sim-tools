@@ -257,3 +257,24 @@ def test_registry_batch_sorting():
     d_unsorted = dists.DistributionRegistry.create_batch(d_config, sort=False)
     assert list(d_sorted.keys()) == ["a_dist", "b_dist"]
     assert list(d_unsorted.keys()) == ["b_dist", "a_dist"]
+
+
+@pytest.mark.parametrize("conf, should_pass", [
+    ({"class_name": "Exponential", "params": {"mean": 1}}, True),
+    ({"class_name": "Exponential"}, False),
+    ({"params": {"mean": 1}}, False),
+    ({"class_name": "Exponential", "params": {"mean": 1}, "foo": 123}, False),
+    ({"CLASS_NAME": "Exponential", "params": {"mean": 1}}, False),
+])
+def test_registry_batch_validation(conf, should_pass):
+    """
+    Check that DistributionRegistry.create_batch() warns for unsuitable
+    distribution configurations.
+    """
+    seed = 123
+    if should_pass:
+        obj = dists.DistributionRegistry._validate_and_create(conf, seed)
+        assert hasattr(obj, "sample")
+    else:
+        with pytest.raises(ValueError):
+            dists.DistributionRegistry._validate_and_create(conf, seed)
