@@ -387,33 +387,71 @@ class DistributionRegistry:
         TypeError
             If config is neither a list nor a dictionary
         """
-        # Handle list configuration
         if isinstance(config, list):
-            # Spawn seeds for non-overlapping streams
             seeds = spawn_seeds(len(config), main_seed)
-            # Create distribution instances
             return [
-                cls.create(item["class_name"],
-                           **{**item["params"], "random_seed": seeds[i]})
-                for i, item in enumerate(config)
+                cls._validate_and_create(dist_config, seeds[i])
+                for i, dist_config in enumerate(config)
             ]
 
-        # Handle dictionary configuration
         if isinstance(config, dict):
-            # Get and sort the configuration items
             items = list(config.items())
             if sort:
                 items = sorted(items, key=lambda kv: kv[0])
-            # Spawn seeds for non-overlapping streams
             seeds = spawn_seeds(len(items), main_seed)
-            # Create distribution instances
             return {
-                name: cls.create(item["class_name"],
-                                 **{**item["params"], "random_seed": seeds[i]})
-                for i, (name, item) in enumerate(items)
+                name: cls._validate_and_create(dist_config, seeds[i])
+                for i, (name, dist_config) in enumerate(items)
             }
 
         raise TypeError("Configuration must be a list or dictionary")
+
+    @classmethod
+    def _validate_and_create(cls, dist_config, seed):
+        """
+        Validate that each of the distribution configurations has ONLY
+        'class_name' and 'params' keys, add 'random_seed' to params, and
+        create the distribution instance.
+
+        Parameters
+        ----------
+        dist_config : dict
+            Dictionary specifying the distribution configuration. Must have
+            keys 'class_name' (str) and 'params' (dict), and no others.
+        seed : int
+            The seed to include in the distribution's parameters (as
+            'random_seed').
+
+        Returns
+        -------
+        instance
+            The created distribution instance.
+
+        Raises
+        ------
+        ValueError
+            If `dist_config` is not a dict, or does not have exactly the
+            expected keys.
+        """
+        # Check config is a dictionary
+        if not isinstance(dist_config, dict):
+            raise ValueError("Each distribution config must be a dict.")
+
+        # Require exactly 'class_name' and 'params' as keys.
+        expected_keys = {"class_name", "params"}
+        keys = set(dist_config.keys())
+        if keys != expected_keys:
+            raise ValueError(
+                "Distribution config must have ONLY the keys "
+                f"{expected_keys}. Found keys: {keys}"
+            )
+
+        # Copy params and inject the random seed.
+        params = dist_config["params"].copy()
+        params["random_seed"] = seed
+
+        # Instantiate and return the distribution object.
+        return cls.create(dist_config["class_name"], **params)
 
     @classmethod
     def get_template(cls, format="json", indent=2):
