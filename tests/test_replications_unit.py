@@ -8,6 +8,7 @@ Credit: Some of these tests are adapted from-
 """
 
 from unittest.mock import MagicMock
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -15,11 +16,16 @@ import pytest
 import scipy.stats as st
 
 from sim_tools.output_analysis import (
+    confidence_interval_method,
     OnlineStatistics,
     ReplicationsAlgorithm,
     ReplicationTabulizer
 )
 
+
+# -----------------------------------------------------------------------------
+# ReplicationsAlgorithm
+# -----------------------------------------------------------------------------
 
 @pytest.mark.parametrize("look_ahead, n, exp", [
     (100, 100, 100),
@@ -82,6 +88,10 @@ def test_algorithm_invalid_budget():
                               replication_budget=9)
 
 
+# -----------------------------------------------------------------------------
+# OnlineStatistics
+# -----------------------------------------------------------------------------
+
 def test_onlinestat_data():
     """
     Check that OnlineStatistics will fail if an invalid data type is provided.
@@ -123,6 +133,10 @@ def test_onlinestat_computations():
     assert np.isclose(stats.deviation, expected_dev), (
         f"Expected deviation {expected_dev}, got {stats.deviation}")
 
+
+# -----------------------------------------------------------------------------
+# ReplicationTabulizer
+# -----------------------------------------------------------------------------
 
 def test_tabulizer_update():
     """
@@ -171,3 +185,44 @@ def test_tabulizer_summary_table():
     assert df["Lower Interval"].tolist() == [3, 8, 13]
     assert df["Upper Interval"].tolist() == [7, 12, 17]
     assert df["% deviation"].tolist() == [0.1, 0.2, 0.3]
+
+
+# -----------------------------------------------------------------------------
+# confidence_interval_method
+# -----------------------------------------------------------------------------
+
+@pytest.mark.parametrize("input_type", [
+    pd.Series([1, 2, 3, 4, 5]),
+    [1, 2, 3, 4, 5],
+    pd.DataFrame({"metric_a": [1, 2, 3, 4, 5], "metric_b": [2, 3, 4, 5, 6]}),
+    {"metric_a": [1, 2, 3, 4, 5]},
+    [[1, 2, 3, 4, 5], [2, 3, 4, 5, 6]]
+])
+def test_confidence_interval_various_inputs(input_type):
+    """
+    Check the output type from different inputs to confidence_interval_method.
+    """
+    warnings.filterwarnings(
+        "ignore",
+        message="WARNING: the replications do not reach desired precision"
+    )
+    result = confidence_interval_method(
+        replications=input_type, alpha=0.05, desired_precision=0.1, min_rep=3
+    )
+    if (
+        isinstance(input_type, (pd.Series, list))
+        and not (isinstance(input_type[0], (list, np.ndarray, pd.Series)))
+    ):
+        # Single metric returns tuple
+        assert isinstance(result, tuple)
+        n_reps, results_df = result
+        assert isinstance(n_reps, int)
+        assert isinstance(results_df, pd.DataFrame)
+    else:
+        # Multiple metrics returns dict
+        assert isinstance(result, dict)
+        for val in result.values():
+            assert isinstance(val, tuple)
+            n_reps, results_df = val
+            assert isinstance(n_reps, int)
+            assert isinstance(results_df, pd.DataFrame)
