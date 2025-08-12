@@ -9,8 +9,10 @@ The Confidence Interval Method (tables and visualisation)
 The Replications Algorithm (Hoad et al. 2010).
 """
 
+import inspect
+from typing import (Dict, List, Optional, Protocol,
+                    runtime_checkable, Sequence, Union)
 import warnings
-from typing import Protocol, runtime_checkable, Optional, Union, Sequence, Dict
 
 import plotly.graph_objects as go
 import numpy as np
@@ -683,10 +685,6 @@ class ReplicationsAlgorithm:
     stats : OnlineStatistics or None
         Tracks running mean, variance, and confidence interval metrics.
 
-    Notes
-    -----
-    Only works with a single performance measure.
-
     References
     ----------
     Hoad, K., Robinson, S., & Davies, R. (2010). Automated selection of the
@@ -736,8 +734,7 @@ class ReplicationsAlgorithm:
         Raises
         ------
         ValueError
-            If parameter types or values are invalid (checked in
-            `valid_inputs()`).
+            If parameter values are invalid (see `valid_inputs()`).
         """
         self.alpha = alpha
         self.half_width_precision = half_width_precision
@@ -763,7 +760,8 @@ class ReplicationsAlgorithm:
         Ensures:
           - `initial_replications` and `look_ahead` are non-negative integers.
           - `half_width_precision` is > 0.
-          - `replication_budget` is not less than `initial_replications`.
+          - `replication_budget` is less than `initial_replications`.
+          - `observer` is class with `.dev` and `.summary_frame()`.
 
         Raises
         ------
@@ -780,6 +778,35 @@ class ReplicationsAlgorithm:
         if self.replication_budget < self.initial_replications:
             raise ValueError(
                 'replication_budget must be less than initial_replications.')
+
+        if self.observer is not None:
+            # Must be a class, not an instance
+            if not inspect.isclass(self.observer):
+                raise TypeError(
+                    "'observer' must be a class (not an instance)."
+                )
+
+            # Instantiate a temporary one to inspect
+            try:
+                obs_instance = self.observer()
+            except Exception as e:
+                raise TypeError(
+                    f"Could not instantiate observer {self.observer}: {e}"
+                )
+
+            # Must have a .summary_table() method
+            if not callable(getattr(obs_instance, "summary_table", None)):
+                raise TypeError(
+                    "Observer class must implement a callable ",
+                    "'summary_table()' method."
+                )
+
+            # Must have a .dev attribute
+            if not hasattr(obs_instance, "dev"):
+                raise TypeError(
+                    "Observer class must have a 'dev' attribute ",
+                    "(list of deviations)."
+                )
 
     def _klimit(self) -> int:
         """
@@ -798,7 +825,51 @@ class ReplicationsAlgorithm:
         """
         return int((self.look_ahead / 100) * max(self.n, 100))
 
-    def select(self, model: ReplicationsAlgorithmModelAdapter) -> int:
+    def find_position(self, lst: List[float]):
+        """
+        Find the first position where element is below deviation, and this is
+        maintained through the lookahead period.
+
+        This is used to correct the ReplicationsAlgorithm, which cannot return
+        a solution below the initial_replications.
+
+        Parameters
+        ----------
+        lst : list[float]
+            List of deviations.
+
+        Returns
+        -------
+        int or None
+            Minimum replications required to meet and maintain precision,
+            or None if not found.
+        """
+        # Check if the list is empty or if no value is below the threshold
+        if not lst or all(
+            x is None or x >= self.half_width_precision for x in lst
+        ):
+            return None
+
+        # Find the first non-None value in the list
+        start_index = pd.Series(lst).first_valid_index()
+
+        # Iterate through the list, stopping when at last point where we still
+        # have enough elements to look ahead
+        if start_index is not None:
+            for i in range(start_index, len(lst) - self.look_ahead):
+                # Create slice of list with current value + lookahead
+                # Check if all fall below the desired deviation
+                if all(
+                    value < self.half_width_precision
+                    for value in lst[i:i+self.look_ahead+1]
+                ):
+                    # Add one, so it is the number of reps, as is zero-indexed
+                    return i + 1
+        return None
+
+    def select(
+        self, model: ReplicationsAlgorithmModelAdapter, metrics: list[str]
+    ) -> int:
         """
         Executes the replication algorithm, determining the necessary number
         of replications to achieve and maintain the desired precision.
@@ -813,13 +884,16 @@ class ReplicationsAlgorithm:
         ----------
         model : ReplicationsAlgorithmModelAdapter
             Simulation model implementing `single_run(replication_index)`.
+        metrics: list[str]
+            The metrics to assess.
 
         Returns
         -------
-        int
-            Number of replications required to achieve and maintain target
-            precision. If convergence is not reached within the budget, returns
-            the budget value.
+        nreps : dict[str, int or None]
+            Minimum replications required for each metric, or None if not
+            achieved.
+        summary_frame : pandas.DataFrame
+            Table summarising deviation and CI metrics for all replications.
 
         Raises
         ------
@@ -837,64 +911,103 @@ class ReplicationsAlgorithm:
         if not isinstance(model, ReplicationsAlgorithmModelAdapter):
             raise ValueError(ALG_INTERFACE_ERROR)
 
-        converged = False
+        # If user gave no observer, use default ReplicationTabulizer
+        # Create instances of observer for each metric
+        if self.observer is not None:
+            observers = {metric: self.observer() for metric in metrics}
+        else:
+            observers = {metric: ReplicationTabulizer() for metric in metrics}
 
-        # Run initial replications of model
-        x_i = [
-            model.single_run(rep) for rep in range(self.initial_replications)]
+        # Create tracking dictionary
+        solutions = {
+            metric: {
+                "nreps": None,    # The solution
+                "target_met": 0,  # Consecutive times target met
+                "solved": False   # Precision maintained over lookahead?
+            }
+            for metric in metrics
+        }
 
-        # Initialise running mean and std dev
-        self.stats = OnlineStatistics(
-            data=np.array(x_i), alpha=self.alpha, observer=self.observer
-        )
+        # If there are no initial replications, create empty instances of
+        # OnlineStatistics for each metric
+        if self.initial_replications == 0:
+            stats = {
+                metric: OnlineStatistics(
+                    data=None, alpha=self.alpha, observer=observers[metric]
+                )
+                for metric in metrics
+            }
+        # If there are, run replications then create instances of
+        # OnlineStatistics pre-loaded with data from initial replications
+        else:
+            initial_results = [model.single_run(rep)
+                               for rep in range(self.initial_replications)]
+            stats = {}
+            for metric in metrics:
+                stats[metric] = OnlineStatistics(
+                    data=np.array([res[metric] for res in initial_results]),
+                    alpha=self.alpha,
+                    observer=observers[metric]
+                )
 
-        while not converged and self.n <= self.replication_budget:
-            if self.n > self.initial_replications:
-                # Update X_n and d_req
-                self.stats.update(x_i)
+        # Check which metrics meet precision after initial replications
+        for metric in metrics:
+            if stats[metric].deviation <= self.half_width_precision:
+                solutions[metric]["nreps"] = self.n
+                solutions[metric]["target_met"] = 1
+                # If there is no lookahead, mark as solved
+                if self._klimit() == 0:
+                    solutions[metric]["solved"] = True
 
-            # Precision achieved?
-            if self.stats.deviation <= self.half_width_precision:
-
-                # Store current solution
-                self._n_solution = self.n
-                converged = True
-
-                if self._klimit() > 0:
-                    k = 1
-
-                    # Look ahead loop
-                    while converged and k <= self._klimit():
-                        if self.verbose:
-                            print(f"{self.n+k}", end=", ")
-
-                        # Simulate replication n + k
-                        x_i = model.single_run(self.n + k - 1)
-
-                        # Update X_n and d_req
-                        self.stats.update(x_i)
-
-                        # Check new precision
-                        if self.stats.deviation > self.half_width_precision:
-                            # Precision not maintained
-                            converged = False
-                            self.n += k
-                        else:
-                            k += 1
-
-                # Terminate if precision maintained over lookahead
-                if converged:
-                    return self._n_solution
-
-            # Precision not achieved/maintained so simulate another replication
+        while (
+            sum(1 for v in solutions.values() if v["solved"]) < len(metrics)
+            and self.n < self.replication_budget + self._klimit()
+        ):
+            new_result = model.single_run(self.n)
             self.n += 1
-            if self.verbose:
-                print(f"{self.n}", end=", ")
-            x_i = model.single_run(self.n - 1)
+            for metric in metrics:
+                # Only process metrics that have not yet stably met precision
+                if not solutions[metric]["solved"]:
+                    # Update running statistics with latest replication result
+                    stats[metric].update(new_result[metric])
 
-        # If code gets to here then no solution found within budget.
-        warnings.warn(
-            "Algorithm did not converge for metric'. "
-            + "Returning replication budget as solution"
-        )
-        return self._n_solution
+                    # Check if current deviation is within target precision
+                    if stats[metric].deviation <= self.half_width_precision:
+
+                        # Record solution, if not met in the last run
+                        if solutions[metric]["target_met"] == 0:
+                            solutions[metric]["nreps"] = self.n
+
+                        # Increment consecutive precision counter
+                        solutions[metric]["target_met"] += 1
+
+                        # Mark as solved if precision has held for look-ahead
+                        if solutions[metric]["target_met"] > self._klimit():
+                            solutions[metric]["solved"] = True
+
+                    else:
+                        # Precision lost — reset counters / solution point
+                        solutions[metric]["target_met"] = 0
+                        solutions[metric]["nreps"] = None
+
+        # Correction to result, replacing if stable solution was achieved
+        # within initial replications
+        for metric, dictionary in solutions.items():
+            adj_nreps = self.find_position(observers[metric].dev)
+            if adj_nreps is not None and dictionary["nreps"] is not None:
+                if adj_nreps < dictionary["nreps"]:
+                    solutions[metric]["nreps"] = adj_nreps
+
+        # Extract minimum replications for each metric
+        nreps = {metric: value["nreps"] for metric, value in solutions.items()}
+        if None in nreps.values():
+            unsolved = [k for k, v in nreps.items() if v is None]
+            warnings.warn(f"WARNING: precision not reached for: {unsolved}")
+
+        # Combine summary frames
+        summary_frame = pd.concat(
+            [observer.summary_table().assign(metric=metric)
+             for metric, observer in observers.items()]
+        ).reset_index(drop=True)
+
+        return nreps, summary_frame
