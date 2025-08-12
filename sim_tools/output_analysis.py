@@ -50,12 +50,33 @@ class ReplicationObserver(Protocol):
 
 class OnlineStatistics:
     """
-    Welford's algorithm for computing a running sample mean and
-    variance. Allowing computation of CIs and half width % deviation
-    from the mean.
+    Computes running sample mean and variance using Welford's algorithm.
 
-    This is a robust, accurate and old(ish) approach (1960s) that
-    I first read about in Donald Knuth’s art of computer programming vol 2.
+    This is a robust and numerically stable approach first described in the
+    1960s and popularised in Donald Knuth's *The Art of Computer Programming*
+    (Vol. 2).
+
+    The term *"online"* means each new data point is processed immediately
+    to update statistics, without storing or reprocessing the entire dataset.
+
+    This implementation additionally supports computation of:
+      - Confidence intervals (CIs).
+      - Percentage deviation of CI half-widths from the mean.
+
+    Attributes
+    ----------
+    n : int
+        Number of data points processed so far.
+    x_i : float
+        Most recent data point.
+    mean : float
+        Current running mean.
+    _sq : float
+        Sum of squared differences from the current mean (used for variance).
+    alpha : float
+        Significance level for confidence interval calculations
+    observer : list
+        Registered observers notified upon updates.
     """
 
     def __init__(
@@ -65,29 +86,32 @@ class OnlineStatistics:
         observer: Optional[ReplicationObserver] = None,
     ) -> None:
         """
-        Initiaise Welford’s algorithm for computing a running sample mean and
-        variance.
+        Initialise a new OnlineStatistics object.
 
         Parameters
         ----------
-        data: array-like, optional (default = None)
-            Contains an initial data sample.
+        data: np.ndarray, optional (default = None)
+            Initial dataset to process.
 
-        alpha: float
-            To compute 100(1 - alpha) confidence interval
+        alpha: float, optional (default = 0.1)
+            Significance level for confidence interval calculations
+            (CI level = 100 * (1 - alpha) %).
 
         observer: ReplicationObserver, optional (default=None)
             A user may optionally track the updates to the statistics using a
-            ReplicationObserver (e.g. ReplicationTabuliser). This allows
+            `ReplicationObserver` (e.g. `ReplicationTabuliser`). This allows
             further tabular or visual analysis or saving results to file if
             required.
 
+        Raises
+        ------
+        ValueError
+            If `data` is provided but is not a NumPy array.
         """
 
         self.n = 0
         self.x_i = None
         self.mean = None
-        # sum of squares of differences from the current mean
         self._sq = None
         self.alpha = alpha
         self._observers = []
@@ -106,11 +130,17 @@ class OnlineStatistics:
 
     def register_observer(self, observer: ReplicationObserver) -> None:
         """
-        observer: ReplicationRecorder, optional (default = None)
-            Include a method for recording the replication results at each
-            update. Part of observer pattern. If None then no results are
-            observed.
+        Register an observer to be notified on each statistics update.
 
+        Parameters
+        ----------
+        observer : ReplicationObserver
+            Object implementing the observer interface.
+
+        Raises
+        ------
+        ValueError
+            If `observer` is not an instance of ReplicationObserver.
         """
         if not isinstance(observer, ReplicationObserver):
             raise ValueError(OBSERVER_INTERFACE_ERROR)
@@ -120,16 +150,25 @@ class OnlineStatistics:
     @property
     def variance(self) -> float:
         """
-        Sample variance of data
-        Sum of squares of differences from the current mean divided by n - 1
-        """
+        Sample variance of the data.
 
+        Returns
+        -------
+        float
+            Sample variance, calculated as the sum of squared differences 
+            from the mean divided by (n - 1).
+        """
         return self._sq / (self.n - 1)
 
     @property
     def std(self) -> float:
         """
-        Standard deviation of data
+        Standard deviation of data.
+
+        Returns
+        -------
+        float
+            Standard deviation, or NaN if fewer than 3 points are available.
         """
         if self.n > 2:
             return np.sqrt(self.variance)
@@ -138,14 +177,24 @@ class OnlineStatistics:
     @property
     def std_error(self) -> float:
         """
-        Standard error of the mean
+        Standard error of the mean.
+
+        Returns
+        -------
+        float
+            Standard error, equal to `std / sqrt(n)`.
         """
         return self.std / np.sqrt(self.n)
 
     @property
     def half_width(self) -> float:
         """
-        Confidence interval half width
+        Half-width of the confidence interval.
+
+        Returns
+        -------
+        float
+            The margin of error for the confidence interval.
         """
         dof = self.n - 1
         t_value = t.ppf(1 - (self.alpha / 2), dof)
@@ -154,7 +203,13 @@ class OnlineStatistics:
     @property
     def lci(self) -> float:
         """
-        Lower confidence interval bound
+        Lower bound of the confidence interval.
+
+        Returns
+        -------
+        float
+            Lower confidence limit, or NaN if fewer than 3 values are
+            available.
         """
         if self.n > 2:
             return self.mean - self.half_width
@@ -163,7 +218,13 @@ class OnlineStatistics:
     @property
     def uci(self) -> float:
         """
-        Lower confidence interval bound
+        Upper bound of the confidence interval.
+
+        Returns
+        -------
+        float
+            Upper confidence limit, or NaN if fewer than 3 values are
+            available.
         """
         if self.n > 2:
             return self.mean + self.half_width
@@ -172,8 +233,13 @@ class OnlineStatistics:
     @property
     def deviation(self) -> float:
         """
-        Precision of the confidence interval expressed as the
-        percentage deviation of the half width from the mean.
+        Precision of the confidence interval expressed as the percentage
+        deviation of the half width from the mean.
+
+        Returns
+        -------
+        float
+            CI half-width divided by the mean, or NaN if fewer than 3 values.
         """
         if self.n > 2:
             return self.half_width / self.mean
@@ -181,38 +247,31 @@ class OnlineStatistics:
 
     def update(self, x: float) -> None:
         """
-        Running update of mean and variance implemented using Welford's
-        algorithm (1962).
+        Update statistics with a new observation using Welford's algorithm.
 
         See Knuth. D `The Art of Computer Programming` Vol 2. 2nd ed. Page 216.
 
         Parameters
         ----------
-        x: float
-            A new observation
+        x : float
+            New observation.
         """
         self.n += 1
         self.x_i = x
-
-        # init values
+        # Initial statistics
         if self.n == 1:
             self.mean = x
             self._sq = 0
         else:
-            # compute the updated mean
+            # Updated statistics
             updated_mean = self.mean + ((x - self.mean) / self.n)
-
-            # update the sum of squares of differences from the current mean
             self._sq += (x - self.mean) * (x - updated_mean)
-
-            # update the tracked mean
             self.mean = updated_mean
-
         self.notify()
 
     def notify(self) -> None:
         """
-        Notify any observers that a update has taken place.
+        Notify all registered observers that an update has occurred.
         """
         for observer in self._observers:
             observer.update(self)
@@ -220,15 +279,41 @@ class OnlineStatistics:
 
 class ReplicationTabulizer:
     """
-    Record the replication results from an instance of ReplicationsAlgorithm
-    in a pandas DataFrame.
+    Observer class for recording replication results from an 
+    `OnlineStatistics` instance during simulation runs or repeated experiments.
 
+    Implements the observer pattern to collect statistics after each update
+    from the observed object, enabling later tabulation and analysis. After
+    data collection, results can be exported as a summary dataframe (equivalent
     Implement as the part of observer pattern. Provides a summary frame
-    equivalent to the output of a confidence_interval_method
+    to the output of `confidence_interval_method`).
+
+    Attributes
+    ----------
+    stdev : list[float]
+        Sequence of recorded standard deviations.
+    lower : list[float]
+        Sequence of recorded lower confidence interval bounds.
+    upper : list[float]
+        Sequence of recorded upper confidence interval bounds.
+    dev : list[float]
+        Sequence of recorded percentage deviations of CI half-width from the
+        mean.
+    cumulative_mean : list[float]
+        Sequence of running mean values.
+    x_i : list[float]
+        Sequence of last observed raw data points.
+    n : int
+        Total number of updates recorded.
     """
 
     def __init__(self):
-        # to track online stats
+        """
+        Initialise an empty `ReplicationTabulizer`.
+
+        All recorded metrics are stored in parallel lists, which grow as
+        `update()` is called.
+        """
         self.stdev = []
         self.lower = []
         self.upper = []
@@ -239,12 +324,16 @@ class ReplicationTabulizer:
 
     def update(self, results: OnlineStatistics) -> None:
         """
-        Add an observation of a replication
+        Record the latest statistics from an observed `OnlineStatistics`
+        instance.
+
+        This method should be called by the observed object when its state
+        changes (i.e., when a new data point has been processed).
 
         Parameters
         ----------
-        results: OnlineStatistic
-            The current replication to observe.
+        results : OnlineStatistics
+            The current statistics object containing the latest values.
         """
         self.x_i.append(results.x_i)
         self.cumulative_mean.append(results.mean)
@@ -256,8 +345,18 @@ class ReplicationTabulizer:
 
     def summary_table(self) -> pd.DataFrame:
         """
-        Return a dataframe of results equivalent to the confidence interval
-        method.
+        Compile all recorded replications into a pandas DataFrame.
+
+        Returns
+        -------
+        pandas.DataFrame
+            A table with one row per replication (update), containing:
+            - `Mean` (latest observed value)
+            - `Cumulative Mean`
+            - `Standard Deviation`
+            - `Lower Interval`
+            - `Upper Interval`
+            - `% deviation` (CI half-width as a fraction of cumulative mean)
         """
         # combine results into a single dataframe
         results = pd.DataFrame(
@@ -292,55 +391,58 @@ def confidence_interval_method(
     decimal_places: Optional[int] = 2,
 ):
     """
-    The confidence interval method for selecting the number of replications
-    to run in a simulation.
+    Determine the minimum number of simulation replications required to achieve
+    a target precision in the confidence interval of a performance metric.
 
-    Finds the smallest number of replications where the width of the confidence
-    interval is less than the desired_precision.
-
-    Returns both the number of replications and the full results dataframe.
+    This function applies the **confidence interval method**: it identifies the
+    smallest replication count where the relative half-width of the confidence
+    interval is less than the specified `desired_precision`.
 
     Parameters
     ----------
     replications: arraylike
-        Array (e.g. np.ndarray or list) of replications of a performance metric
-
+        Array (e.g. np.ndarray or list) of replication results for a
+        performance metric.
     alpha: float, optional (default=0.05)
-        procedure constructs a 100(1-alpha) confidence interval for the
-        cumulative mean.
-
+        Significance level for confidence interval calculations
+        (CI level = 100 * (1 - alpha) %).
     desired_precision: float, optional (default=0.05)
-        Desired mean deviation from confidence interval.
-
+        Target CI half-width precision (i.e. percentage deviation of the
+        confidence interval from the mean).
     min_rep: int, optional (default=5)
-        set to a integer > 0 and ignore all of the replications prior to it
-        when selecting the number of replications to run to achieve the desired
-        precision.  Useful when the number of replications returned does not
-        provide a stable precision below target.
-
+        Minimum number of replications to consider before evaluating precision.
+        Helps avoid unstable early results.
     decimal_places: int, optional (default=2)
-        sets the number of decimal places of the returned dataframe containing
-        the results
+        Number of decimal places to round values in the returned results table.
 
     Returns
     -------
-        tuple: int, pd.DataFrame
+    tuple of (int, pandas.DataFrame)
+        - **n_reps** : int
+          The smallest number of replications achieving the desired precision.
+          Returns -1 if target precision is never reached.
+        - **results** : pandas.DataFrame
+          Summary statistics at each replication:
+          `"Mean"`, `"Cumulative Mean"`, `"Standard Deviation"`,
+          `"Lower Interval"`, `"Upper Interval"`, `"% deviation"`.
 
+    Warns
+    -----
+    UserWarning
+        If the desired precision is not achieved for any replication.
     """
-    # welford's method to track cumulative mean and construct CIs at each rep
-    # track the process and construct data table using ReplicationTabuliser
+    # Set up method for calculating statistics
     observer = ReplicationTabulizer()
     stats = OnlineStatistics(
         alpha=alpha, data=np.array(replications[:2]), observer=observer)
 
-    # iteratively update.
+    # Calculate statistics with each replication
     for i in range(2, len(replications)):
         stats.update(replications[i])
 
     results = observer.summary_table()
 
-    # get the smallest no. of reps where deviation is less than precision
-    # target
+    # Find minimum number of replications where deviation is below target
     try:
         n_reps = (
             results.iloc[min_rep:]
@@ -349,7 +451,6 @@ def confidence_interval_method(
             .name
         )
     except IndexError:
-        # no replications with desired precision
         message = "WARNING: the replications do not reach desired precision"
         warnings.warn(message)
         n_reps = -1
@@ -361,26 +462,37 @@ def plotly_confidence_interval_method(
     n_reps, conf_ints, metric_name, figsize=(1200, 400)
 ):
     """
-    Interactive Plotly visualization with deviation hover information
+    Create an interactive Plotly visualisation of the cumulative mean and
+    confidence intervals for each replication.
+
+    This plot displays:
+      - The running (cumulative) mean of a performance metric.
+      - Lower and upper bounds of the confidence interval at each replication.
+      - Annotated deviation (as % of mean) on hover.
+      - A vertical dashed line at the minimum number of replications (`n_reps`)
+        required to achieve the target precision.
 
     Parameters
     ----------
     n_reps: int
-        Minimum number of reps selected
+        Minimum number of replications needed to achieve desired precision
+        (typically the output of `confidence_interval_method`).
     conf_ints: pandas.DataFrame
-       Results from `confidence_interval_method` function
+        Results DataFrame from `confidence_interval_method`, containing
+        columns: `"Cumulative Mean"`, `"Lower Interval"`, `"Upper Interval"`,
+        etc.
     metric_name: str
-        Name of the performance measure
+        Name of the performance metric displayed in the y-axis label.
     figsize: tuple, optional (default=(1200,400))
-        Plot dimensions in pixels (width, height)
+        Figure size in pixels: (width, height).
 
     Returns
     -------
-        plotly.graph_objects.Figure
+    plotly.graph_objects.Figure
     """
     fig = go.Figure()
 
-    # Calculate relative deviations [1][4]
+    # Calculate relative deviations
     deviation_pct = (
         (conf_ints["Upper Interval"] - conf_ints["Cumulative Mean"])
         / conf_ints["Cumulative Mean"]
@@ -456,28 +568,52 @@ class ReplicationsAlgorithmModelAdapter(Protocol):
 # pylint: disable=too-many-instance-attributes
 class ReplicationsAlgorithm:
     """
-    An implementation of the "Replications Algorithm" from Hoad, Robinson, &
-    Davies (2010).
+    Automatically determine the number of simulation replications needed
+    to achieve and maintain a target confidence interval precision.
 
-    Given a model's performance measure, and a user set CI half width precision
-    automatically select the number of replications.
+    Implements the *Replications Algorithm* from Hoad, Robinson & Davies
+    (2010), which combines:
+      - The **confidence interval method** to assess whether the
+        target precision has been met.
+      - A **sequential look-ahead procedure** to verify that
+        precision remains stable in additional replications.
 
-    Combines the "confidence intervals" method with a sequential look-ahead
-    procedure to determine if a desired precision in CI is maintained when
-    achieved.
+    Attributes
+    ----------
+    alpha : float
+        Significance level for confidence interval calculations.
+    half_width_precision : float
+        Target CI half-width precision (i.e. percentage deviation of the
+        confidence interval from the mean).
+    initial_replications : int
+        Number of replications to run before evaluating precision.
+    look_ahead : int
+        Number of additional replications to simulate for stability checks
+        (adjusted proportionally when `n > 100`).
+    replication_budget : int
+        Maximum number of replications allowed.
+    verbose : bool
+        If True, prints the current replication count during execution.
+    observer : ReplicationObserver or None
+        Optional observer object to record statistics at each update.
+    n : int
+        Current replication count (updated during execution).
+    _n_solution : int
+        Solution replication count once convergence is met (or replication
+        budget if not met).
+    stats : OnlineStatistics or None
+        Tracks running mean, variance, and confidence interval metrics.
 
-    Note only works with a single performance measure
+    Notes
+    -----
+    Only works with a single performance measure.
 
-    Sources
-    -------
-
-    Please cite the authors of the algorithm if you use it in your work.
-
-    Hoad, Robinson, & Davies (2010). Automated selection of the number of
-    replications for a discrete-event simulation. Journal of the Operational
-    Research Society. https://www.jstor.org/stable/40926090
-
-    Please also cite sim-tools!
+    References
+    ----------
+    Hoad, K., Robinson, S., & Davies, R. (2010). Automated selection of the
+    number of replications for a discrete-event simulation. *Journal of the
+    Operational Research Society*, 61(11), 1632-1644.
+    https://www.jstor.org/stable/40926090
     """
     # pylint: disable=too-many-arguments,too-many-positional-arguments
     def __init__(
@@ -496,49 +632,46 @@ class ReplicationsAlgorithm:
         Parameters
         ----------
         alpha: float, optional (default = 0.05)
-            Used to construct the 100(1-alpha) CI.
-
+            Significance level for confidence interval calculations
+            (CI level = 100 * (1 - alpha) %).
         half_width_precision: float, optional (default = 0.1)
-            The target half width precision for the algorithm
-            % deviation of the interval from mean.
-
+            Target CI half-width precision (i.e. percentage deviation of the
+            confidence interval from the mean).
+        initial_replications : int
+            Number of replications to run before evaluating precision.
         look_ahead: int, optional (default = 5)
-            Recommended no. replications to look ahead to assess stability
-            of precision.  When the number of replications n <= 100 the
-            value of look ahead is used. When n > 100 then
-            look_ahead / 100 * max(n, 100) is used.
-
+            Number of additional replications to simulate for stability checks.
+            When the number of replications n <= 100 the value of look ahead
+            is used. When n > 100 then look_ahead / 100 * max(n, 100) is used.
         replication_budget: int, optional (default = 1000)
-            A hard limit on the number of replications. Use for larger models
-            where replication runtime is a constraint.
-
+            Maximum number of replications allowed; algorithm stops if not
+            converged by then. Useful for larger models where replication
+            runtime is a constraint.
         verbose: bool, optional (default=False)
-            Display the current replication number while running
-
+            If True, prints replication count progress.
         observer: ReplicationObserver, optional (default=None)
-            Include an observer object to track how statistics change as the
-            algorithm runs. For example ReplicationTabulizer to return a table
-            equivalent to confidence_interval_method.
+            Optional observer to record statistics after each replication. For
+            example `ReplicationTabulizer` to return a table equivalent to
+            `confidence_interval_method`.
+
+        Raises
+        ------
+        ValueError
+            If parameter types or values are invalid (checked in
+            `valid_inputs()`).
         """
         self.alpha = alpha
         self.half_width_precision = half_width_precision
         self.initial_replications = initial_replications
-        # look ahead when n < 100
         self.look_ahead = look_ahead
-
-        # hard constraint will terminate alg...
         self.replication_budget = replication_budget
-
-        # show current replication no.
         self.verbose = verbose
 
-        # current replication number
+        # Initially set n to number of initial replications
         self.n = self.initial_replications
-        # Nsol
+
         self._n_solution = self.replication_budget
-
         self.observer = observer
-
         self.stats = None
 
         # Check validity of provided parameters
@@ -547,6 +680,16 @@ class ReplicationsAlgorithm:
     def valid_inputs(self):
         """
         Checks validity of provided parameters.
+
+        Ensures:
+          - `initial_replications` and `look_ahead` are non-negative integers.
+          - `half_width_precision` is > 0.
+          - `replication_budget` is not less than `initial_replications`.
+
+        Raises
+        ------
+        ValueError
+            If any conditions are not met.
         """
         for p in [self.initial_replications, self.look_ahead]:
             if not isinstance(p, int) or p < 0:
@@ -561,9 +704,18 @@ class ReplicationsAlgorithm:
 
     def _klimit(self) -> int:
         """
-        Return the current look ahead.
-        If n <= 100 then return kLimit.  If n > 100 then compute kLimit
-        as fraction of n.
+        Determine the number of additional replications to check after the
+        desired confidence interval precision is first reached.
+
+        The look-ahead count scales with the total number of replications:
+        - If n ≤ 100, returns the fixed `look_ahead` value.
+        - If n > 100, returns `look_ahead / 100 * max(n, 100)`, rounded down.
+
+        Returns
+        -------
+        int
+            Number of additional replications to check precision stability.
+            Returned value is always rounded down to the nearest integer.
         """
         return int((self.look_ahead / 100) * max(self.n, 100))
 
@@ -572,10 +724,35 @@ class ReplicationsAlgorithm:
         Executes the replication algorithm, determining the necessary number
         of replications to achieve and maintain the desired precision.
 
+        The process:
+          1. Runs `initial_replications` of the model.
+          2. Updates running statistics and calculates CI precision.
+          3. If precision met, tests stability via the look-ahead procedure.
+          4. Stops when stable precision is achieved or budget is exhausted.
+
         Parameters
         ----------
-        model (ReplicationsAlgorithmModelAdapter):
-            Simulation model.
+        model : ReplicationsAlgorithmModelAdapter
+            Simulation model implementing `single_run(replication_index)`.
+
+        Returns
+        -------
+        int
+            Number of replications required to achieve and maintain target
+            precision. If convergence is not reached within the budget, returns
+            the budget value.
+
+        Raises
+        ------
+        ValueError
+            If the provided `model` is not an instance of
+            `ReplicationsAlgorithmModelAdapter`.
+
+        Warns
+        -----
+        UserWarning
+            If convergence is not reached within the allowed replication
+            budget.
         """
         # Check validity of provided model
         if not isinstance(model, ReplicationsAlgorithmModelAdapter):
@@ -583,60 +760,60 @@ class ReplicationsAlgorithm:
 
         converged = False
 
-        # run initial replications of model
+        # Run initial replications of model
         x_i = [
             model.single_run(rep) for rep in range(self.initial_replications)]
 
-        # initialise running mean and std dev
+        # Initialise running mean and std dev
         self.stats = OnlineStatistics(
             data=np.array(x_i), alpha=self.alpha, observer=self.observer
         )
 
         while not converged and self.n <= self.replication_budget:
             if self.n > self.initial_replications:
-                # update X_n and d_req
+                # Update X_n and d_req
                 self.stats.update(x_i)
 
-            # precision achieved?
+            # Precision achieved?
             if self.stats.deviation <= self.half_width_precision:
 
-                # store current solution
+                # Store current solution
                 self._n_solution = self.n
                 converged = True
 
                 if self._klimit() > 0:
                     k = 1
 
-                    # look ahead loop
+                    # Look ahead loop
                     while converged and k <= self._klimit():
                         if self.verbose:
                             print(f"{self.n+k}", end=", ")
 
-                        # simulate replication n + k
+                        # Simulate replication n + k
                         x_i = model.single_run(self.n + k - 1)
 
-                        # update X_n and d_req
+                        # Update X_n and d_req
                         self.stats.update(x_i)
 
-                        # check new precision
+                        # Check new precision
                         if self.stats.deviation > self.half_width_precision:
-                            # precision not maintained
+                            # Precision not maintained
                             converged = False
                             self.n += k
                         else:
                             k += 1
 
-                # terminate if precision maintained over lookahead
+                # Terminate if precision maintained over lookahead
                 if converged:
                     return self._n_solution
 
-            # precision not achieved/maintained so simulate another replication
+            # Precision not achieved/maintained so simulate another replication
             self.n += 1
             if self.verbose:
                 print(f"{self.n}", end=", ")
             x_i = model.single_run(self.n - 1)
 
-        # if code gets to here then no solution found within budget.
+        # If code gets to here then no solution found within budget.
         warnings.warn(
             "Algorithm did not converge for metric'. "
             + "Returning replication budget as solution"
