@@ -640,10 +640,21 @@ class ReplicationsAlgorithmModelAdapter(Protocol):
     single_run(replication_number) interface.
     """
 
-    def single_run(self, replication_number: int) -> float:
+    def single_run(self, replication_number: int) -> dict[str, float]:
         """
-        Perform a unique replication of the model. Return a performance measure
+        Run a single unique replication of the model and return results.
+
+        Parameters
+        ----------
+        replication_number : int
+            The replication sequence number.
+
+        Returns
+        -------
+        dict[str, float]
+            {'metric_name': value, ... } for all metrics being tracked.
         """
+        pass
 
 
 # pylint: disable=too-many-instance-attributes
