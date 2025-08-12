@@ -10,7 +10,7 @@ The Replications Algorithm (Hoad et al. 2010).
 """
 
 import warnings
-from typing import Protocol, runtime_checkable, Optional
+from typing import Protocol, runtime_checkable, Optional, Union, Sequence, Dict
 
 import plotly.graph_objects as go
 import numpy as np
@@ -384,7 +384,13 @@ class ReplicationTabulizer:
 
 
 def confidence_interval_method(
-    replications,
+    replications: Union[
+        pd.Series,
+        pd.DataFrame,
+        Sequence[float],
+        Sequence[Sequence[float]],
+        Dict[str, Sequence[float]],
+    ],
     alpha: Optional[float] = 0.05,
     desired_precision: Optional[float] = 0.05,
     min_rep: Optional[int] = 5,
@@ -392,17 +398,24 @@ def confidence_interval_method(
 ):
     """
     Determine the minimum number of simulation replications required to achieve
-    a target precision in the confidence interval of a performance metric.
+    a target precision in the confidence interval of one or several performance
+    metrics.
 
     This function applies the **confidence interval method**: it identifies the
     smallest replication count where the relative half-width of the confidence
-    interval is less than the specified `desired_precision`.
+    interval is less than the specified `desired_precision` for each metric.
 
     Parameters
     ----------
-    replications: arraylike
-        Array (e.g. np.ndarray or list) of replication results for a
-        performance metric.
+    replications: array-like, pd.Series, pd.DataFrame, list, or dict
+        Replication results for one or more performance metrics. Accepted
+        formats:
+        - `pd.Series` or 1D list/numpy array → single metric
+        - `pd.DataFrame` → multiple metrics in columns
+        - `dict[str, list/array/Series]` → {metric_name: replications}
+        - list of lists / numpy arrays / Series → multiple metrics unnamed
+        Each inner sequence/Series/numpy array must contain numeric replication
+        results in the order they were generated.
     alpha: float, optional (default=0.05)
         Significance level for confidence interval calculations
         (CI level = 100 * (1 - alpha) %).
@@ -417,45 +430,81 @@ def confidence_interval_method(
 
     Returns
     -------
-    tuple of (int, pandas.DataFrame)
-        - **n_reps** : int
-          The smallest number of replications achieving the desired precision.
-          Returns -1 if target precision is never reached.
-        - **results** : pandas.DataFrame
-          Summary statistics at each replication:
-          `"Mean"`, `"Cumulative Mean"`, `"Standard Deviation"`,
-          `"Lower Interval"`, `"Upper Interval"`, `"% deviation"`.
+    - Single-metric input → tuple `(n_reps, results_df)`
+    - Multi-metric input → dict:
+        `{metric_name: (n_reps, results_df)}`
+    Where:
+        n_reps : int
+            The smallest number of replications achieving the desired
+            precision. Returns -1 if precision is never reached.
+        results_df : pandas.DataFrame
+            Summary statistics at each replication:
+            "Mean", "Cumulative Mean", "Standard Deviation",
+            "Lower Interval", "Upper Interval", "% deviation"
 
     Warns
     -----
     UserWarning
-        If the desired precision is not achieved for any replication.
+        Issued per metric if the desired precision is never reached.
     """
-    # Set up method for calculating statistics
-    observer = ReplicationTabulizer()
-    stats = OnlineStatistics(
-        alpha=alpha, data=np.array(replications[:2]), observer=observer)
 
-    # Calculate statistics with each replication
-    for i in range(2, len(replications)):
-        stats.update(replications[i])
+    def process_single_metric(metric_values):
+        """Get result for one metric."""
+        # Set up method for calculating statistics
+        observer = ReplicationTabulizer()
+        stats = OnlineStatistics(
+            alpha=alpha, data=np.array(metric_values[:2]), observer=observer)
 
-    results = observer.summary_table()
+        # Calculate statistics with each replication
+        for i in range(2, len(metric_values)):
+            stats.update(metric_values[i])
 
-    # Find minimum number of replications where deviation is below target
-    try:
-        n_reps = (
-            results.iloc[min_rep:]
-            .loc[results["% deviation"] <= desired_precision]
-            .iloc[0]
-            .name
-        )
-    except IndexError:
-        message = "WARNING: the replications do not reach desired precision"
-        warnings.warn(message)
-        n_reps = -1
+        results_df = observer.summary_table()
 
-    return n_reps, results.round(decimal_places)
+        # Find minimum number of replications where deviation is below target
+        try:
+            n_reps = (
+                results_df.iloc[min_rep:]
+                .loc[results_df["% deviation"] <= desired_precision]
+                .iloc[0]
+                .name
+            )
+        except IndexError:
+            msg = "WARNING: the replications do not reach desired precision"
+            warnings.warn(msg)
+            n_reps = -1
+
+        return n_reps, results_df.round(decimal_places)
+
+    # Single metric
+    if isinstance(replications, pd.Series) or np.ndim(replications) == 1:
+        return process_single_metric(list(replications))
+
+    # Dataframe with multiple metric columns
+    if isinstance(replications, pd.DataFrame):
+        return {
+            col: process_single_metric(replications[col].tolist())
+            for col in replications.columns
+        }
+
+    # Dictionary of metrics
+    if isinstance(replications, dict):
+        return {
+            name: process_single_metric(vals)
+            for name, vals in replications.items()
+        }
+
+    # List of lists, arrays or series
+    if (
+        isinstance(replications, list) and
+        all(isinstance(x, (list, np.ndarray, pd.Series)) for x in replications)
+    ):
+        return {
+            f"metric_{i}": process_single_metric(vals)
+            for i, vals in enumerate(replications)
+        }
+
+    raise TypeError(f"Unsupported replications type: {type(replications)}")
 
 
 def plotly_confidence_interval_method(
