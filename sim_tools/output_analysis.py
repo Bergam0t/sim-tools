@@ -459,7 +459,7 @@ def confidence_interval_method(
 
 
 def plotly_confidence_interval_method(
-    n_reps, conf_ints, metric_name, figsize=(1200, 400)
+    n_reps, conf_ints, metric_name, figsize=(1200, 400), shaded=True
 ):
     """
     Create an interactive Plotly visualisation of the cumulative mean and
@@ -485,6 +485,8 @@ def plotly_confidence_interval_method(
         Name of the performance metric displayed in the y-axis label.
     figsize: tuple, optional (default=(1200,400))
         Figure size in pixels: (width, height).
+    shaded: bool, optional
+        If True, use shaded CI region. If False, use dashed lines (legacy).
 
     Returns
     -------
@@ -499,31 +501,59 @@ def plotly_confidence_interval_method(
         * 100
     ).round(2)
 
-    # Confidence interval bands with hover info
-    for col, color, dash in zip(
-        ["Lower Interval", "Upper Interval"],
-        ["lightblue", "lightblue"],
-        ["dot", "dot"]
-    ):
+    # Confidence interval
+    if shaded:
+        # Shaded style
         fig.add_trace(
             go.Scatter(
                 x=conf_ints.index,
-                y=conf_ints[col],
-                line={"color": color, "dash": dash},
-                name=col,
+                y=conf_ints["Upper Interval"],
+                mode="lines",
+                line={"width": 0},
+                name="Upper Interval",
                 text=[f"Deviation: {d}%" for d in deviation_pct],
                 hoverinfo="x+y+name+text",
             )
         )
+        fig.add_trace(
+            go.Scatter(
+                x=conf_ints.index,
+                y=conf_ints["Lower Interval"],
+                mode="lines",
+                line={"width": 0},
+                fill="tonexty",
+                fillcolor="rgba(0,176,185,0.2)",
+                name="Lower Interval",
+                text=[f"Deviation: {d}%" for d in deviation_pct],
+                hoverinfo="x+y+name+text",
+            )
+        )
+    else:
+        # Dashed lines style
+        for col, color, dash in zip(
+            ["Lower Interval", "Upper Interval"],
+            ["lightblue", "lightblue"],
+            ["dot", "dot"]
+        ):
+            fig.add_trace(
+                go.Scatter(
+                    x=conf_ints.index,
+                    y=conf_ints[col],
+                    line={"color": color, "dash": dash},
+                    name=col,
+                    text=[f"Deviation: {d}%" for d in deviation_pct],
+                    hoverinfo="x+y+name+text",
+                )
+            )
 
-    # Cumulative mean line with enhanced hover
+    # Cumulative mean line
     fig.add_trace(
         go.Scatter(
             x=conf_ints.index,
             y=conf_ints["Cumulative Mean"],
             line={"color": "blue", "width": 2},
             name="Cumulative Mean",
-            hoverinfo="x+y+name",
+            hoverinfo="x+y+name"
         )
     )
 
