@@ -31,7 +31,7 @@ def test_consistent_methods():
     model = DummySimulationModel(mean=70, std_dev=4)
 
     # Run the confidence interval method
-    results = [model.single_run(rep) for rep in range(0, reps)]
+    results = [model.single_run(rep)["metric"] for rep in range(0, reps)]
     _, ci_method_summary_table = confidence_interval_method(
         replications=results,
         alpha=alpha,
@@ -40,7 +40,6 @@ def test_consistent_methods():
         decimal_places=decimal_places)
 
     # Run the algorithm
-    observer = ReplicationTabulizer()
     analyser = ReplicationsAlgorithm(
         alpha=alpha,
         half_width_precision=desired_precision,
@@ -48,14 +47,15 @@ def test_consistent_methods():
         look_ahead=0,
         replication_budget=reps,
         verbose=False,
-        observer=observer
+        observer=ReplicationTabulizer
     )
-    _ = analyser.select(model)
-    algorithm_summary_table = round(observer.summary_table(), decimal_places)
+    _, algorithm_summary_table = analyser.select(model, metrics=["metric"])
+    algorithm_summary_table = round(algorithm_summary_table, decimal_places)
 
     # Compare the summary tables
     pd.testing.assert_frame_equal(
-        ci_method_summary_table, algorithm_summary_table)
+        ci_method_summary_table, algorithm_summary_table
+    )
 
 
 def test_ci_method_output():
@@ -72,7 +72,7 @@ def test_ci_method_output():
 
     # Run the model
     model = DummySimulationModel(mean=10, std_dev=0.5)
-    results = [model.single_run(rep) for rep in range(1, reps+1)]
+    results = [model.single_run(rep)["metric"] for rep in range(1, reps+1)]
 
     # Run the confidence interval method
     n_reps, summary_table = confidence_interval_method(
@@ -116,7 +116,6 @@ def test_algorithm_initial():
     # Set up the algorithm with a high number of initial replications and no
     # look ahead period
     initial_replications = 200
-    observer = ReplicationTabulizer()
     analyser = ReplicationsAlgorithm(
         alpha=0.05,
         half_width_precision=0.05,
@@ -124,15 +123,14 @@ def test_algorithm_initial():
         look_ahead=0,
         replication_budget=1000,
         verbose=False,
-        observer=observer
+        observer=ReplicationTabulizer
     )
 
     # Run the algorithm and get results
-    n_reps = analyser.select(model)
-    summary_table = observer.summary_table()
+    n_reps, summary_table = analyser.select(model, metrics=["metric"])
 
     # Check that soution equals initial_replications
-    assert n_reps == initial_replications
+    assert n_reps["metric"] == initial_replications
 
     # Check that number of rows in summary table equals initial_replications
     assert len(summary_table) == initial_replications
@@ -148,7 +146,6 @@ def test_algorithm_nosolution():
 
     # Set up algorithm to run max of 2 replications
     reps = 2
-    observer = ReplicationTabulizer()
     analyser = ReplicationsAlgorithm(
         alpha=0.05,
         half_width_precision=0.05,
@@ -156,16 +153,15 @@ def test_algorithm_nosolution():
         look_ahead=0,
         replication_budget=reps,
         verbose=False,
-        observer=observer
+        observer=ReplicationTabulizer
     )
 
     # Run algorithm, checking that it produces a warning
     with pytest.warns():
-        n_reps = analyser.select(model)
+        n_reps, summary_table = analyser.select(model, metrics=["metric"])
 
     # Check that solution is equal to max replications
-    assert n_reps == reps
+    assert n_reps["metric"] == reps
 
     # Check that the summary tables has no more than 2 rows
-    summary_table = observer.summary_table()
     assert len(summary_table) < reps + 1
