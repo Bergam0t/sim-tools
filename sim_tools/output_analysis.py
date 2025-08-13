@@ -37,7 +37,8 @@ ALG_INTERFACE_ERROR = (
 @runtime_checkable
 class ReplicationObserver(Protocol):
     """
-    Interface for an observer of an instance of the ReplicationsAnalyser.
+    Interface (protocol) for observers that track simulation replication
+    results.
     """
     def update(self, results) -> None:
         """
@@ -48,6 +49,35 @@ class ReplicationObserver(Protocol):
         results: OnlineStatistic
             The current replication to observe.
         """
+
+
+@runtime_checkable
+class AlgorithmObserver(Protocol):
+    """
+    Interface (protocol) for observer used in ReplicationsAlgorithm.
+    """
+    def __init__(self):
+        """
+        Initialise observer.
+        """
+        self.dev = []  # Required attribute
+
+    def update(self, results) -> None:
+        """
+        Add an observation of a replication.
+
+        Parameters
+        -----------
+        results: OnlineStatistic
+            The current replication to observe.
+        """
+        self.dev.append(...)
+
+    def summary_table(self):
+        """
+        Create a DataFrame summarising all recorded replication statistics.
+        """
+        return pd.DataFrame(...)
 
 
 class OnlineStatistics:
@@ -712,7 +742,7 @@ class ReplicationsAlgorithm:
         look_ahead: Optional[int] = 5,
         replication_budget: Optional[float] = 1000,
         verbose: Optional[bool] = False,
-        observer: Optional[ReplicationObserver] = None,
+        observer: Optional[ReplicationObserver] = ReplicationTabulizer,
     ):
         """
         Initialise the replications algorithm
@@ -737,7 +767,7 @@ class ReplicationsAlgorithm:
             runtime is a constraint.
         verbose: bool, optional (default=False)
             If True, prints replication count progress.
-        observer: ReplicationObserver, optional (default=None)
+        observer: ReplicationObserver, optional (default=ReplicationTabulizer)
             Optional observer to record statistics after each replication. For
             example `ReplicationTabulizer` to return a table equivalent to
             `confidence_interval_method`.
@@ -805,18 +835,11 @@ class ReplicationsAlgorithm:
                     f"Could not instantiate observer {self.observer}: {e}"
                 )
 
-            # Must have a .summary_table() method
-            if not callable(getattr(obs_instance, "summary_table", None)):
+            # Must have a .summary_table() method and .dev attribute
+            if not isinstance(obs_instance, AlgorithmObserver):
                 raise TypeError(
-                    "Observer class must implement a callable ",
-                    "'summary_table()' method."
-                )
-
-            # Must have a .dev attribute
-            if not hasattr(obs_instance, "dev"):
-                raise TypeError(
-                    "Observer class must have a 'dev' attribute ",
-                    "(list of deviations)."
+                    "Observer must implement the AlgorithmObserver protocol, i"
+                    "ncluding the `.dev` attribute and `summary_table` method."
                 )
 
     def _klimit(self) -> int:
@@ -922,12 +945,8 @@ class ReplicationsAlgorithm:
         if not isinstance(model, ReplicationsAlgorithmModelAdapter):
             raise ValueError(ALG_INTERFACE_ERROR)
 
-        # If user gave no observer, use default ReplicationTabulizer
         # Create instances of observer for each metric
-        if self.observer is not None:
-            observers = {metric: self.observer() for metric in metrics}
-        else:
-            observers = {metric: ReplicationTabulizer() for metric in metrics}
+        observers = {metric: self.observer() for metric in metrics}
 
         # Create tracking dictionary
         solutions = {
