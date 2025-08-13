@@ -425,7 +425,7 @@ def confidence_interval_method(
         Dict[str, Sequence[float]],
     ],
     alpha: Optional[float] = 0.05,
-    desired_precision: Optional[float] = 0.05,
+    desired_precision: Optional[float] = 0.1,
     min_rep: Optional[int] = 5,
     decimal_places: Optional[int] = 2,
 ):
@@ -452,7 +452,7 @@ def confidence_interval_method(
     alpha: float, optional (default=0.05)
         Significance level for confidence interval calculations
         (CI level = 100 * (1 - alpha) %).
-    desired_precision: float, optional (default=0.05)
+    desired_precision: float, optional (default=0.1)
         Target CI half-width precision (i.e. percentage deviation of the
         confidence interval from the mean).
     min_rep: int, optional (default=5)
