@@ -38,6 +38,9 @@ def test_consistent_methods():
         desired_precision=desired_precision,
         min_rep=0,
         decimal_places=decimal_places)
+    # Add "metric" column and reset index(to be consistent with algorithm)
+    ci_method_summary_table["metric"] = "metric"
+    ci_method_summary_table.reset_index(inplace=True, drop=True)
 
     # Run the algorithm
     analyser = ReplicationsAlgorithm(
@@ -129,11 +132,11 @@ def test_algorithm_initial():
     # Run the algorithm and get results
     n_reps, summary_table = analyser.select(model, metrics=["metric"])
 
-    # Check that soution equals initial_replications
-    assert n_reps["metric"] == initial_replications
-
-    # Check that number of rows in summary table equals initial_replications
+    # Check that nrow in summary table equals initial reps
     assert len(summary_table) == initial_replications
+
+    # Check that solution is less than initial_replications
+    assert n_reps["metric"] < initial_replications
 
 
 def test_algorithm_nosolution():
@@ -149,7 +152,7 @@ def test_algorithm_nosolution():
     analyser = ReplicationsAlgorithm(
         alpha=0.05,
         half_width_precision=0.05,
-        initial_replications=reps,
+        initial_replications=0,
         look_ahead=0,
         replication_budget=reps,
         verbose=False,
@@ -157,11 +160,11 @@ def test_algorithm_nosolution():
     )
 
     # Run algorithm, checking that it produces a warning
-    with pytest.warns():
+    with pytest.warns(UserWarning):
         n_reps, summary_table = analyser.select(model, metrics=["metric"])
 
-    # Check that solution is equal to max replications
-    assert n_reps["metric"] == reps
+    # Check that there is no solution
+    assert n_reps["metric"] is None
 
     # Check that the summary tables has no more than 2 rows
-    assert len(summary_table) < reps + 1
+    assert len(summary_table) < 3
