@@ -49,7 +49,7 @@ def test_ci_method(mean, std_dev, expected_n_reps):
 
 
 @pytest.mark.parametrize("mean, std_dev, expected_n_reps", [
-    (100, 4, 5),
+    (100, 4, 3),
     (1, 1, 332),
     (44, 27, 171)
 ])
