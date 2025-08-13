@@ -88,6 +88,40 @@ def test_algorithm_invalid_budget():
                               replication_budget=9)
 
 
+@pytest.mark.parametrize("lst, exp, look_ahead", [
+    ([None, None, 0.8, 0.4, 0.3], 4, 0),  # Normal case
+    ([0.4, 0.3, 0.2, 0.1], 1, 0),  # No None values
+    ([0.8, 0.9, 0.8, 0.7], None, 0),  # No values below threshold
+    ([None, None, None, None], None, 0),  # No values
+    ([], None, 0),  # Empty list
+    ([None, None, 0.8, 0.8, 0.3, 0.3, 0.3], None, 3),  # Not full lookahead
+    ([None, None, 0.8, 0.8, 0.3, 0.3, 0.3, 0.3], 5, 3)  # Meets lookahead
+])
+def test_find_position(lst, exp, look_ahead):
+    """
+    Test the find_position() method from ReplicationsAlgorithm.
+
+    Parameters
+    ----------
+    lst : list
+        List of values to input to find_position().
+    exp : float
+        Expected result from find_position().
+    look_ahead : int
+        Number of extra positions to check that they also fall under the
+        threshold.
+    """
+    # Set threshold to 0.5, with provided look_ahead
+    alg = ReplicationsAlgorithm(half_width_precision=0.5,
+                                look_ahead=look_ahead)
+    # Get result from algorithm and compare to expected
+    result = alg.find_position(lst)
+    assert result == exp, (
+        f"Ran find_position on: {lst} (threshold 0.5, look-ahead "
+        f"{look_ahead}). Expected {exp}, but got {result}."
+    )
+
+
 # -----------------------------------------------------------------------------
 # OnlineStatistics
 # -----------------------------------------------------------------------------
@@ -137,6 +171,21 @@ def test_onlinestat_computations():
 # -----------------------------------------------------------------------------
 # ReplicationTabulizer
 # -----------------------------------------------------------------------------
+
+def test_tabulizer_initial_state():
+    """
+    Test that ReplicationTabulizer initializes with empty lists and n = 0.
+    """
+    tab = ReplicationTabulizer()
+    assert tab.n == 0
+    # Checks for empty lists (equivalent to len(tab.x_i)==0)
+    assert not tab.x_i
+    assert not tab.cumulative_mean
+    assert not tab.stdev
+    assert not tab.lower
+    assert not tab.upper
+    assert not tab.dev
+
 
 def test_tabulizer_update():
     """
