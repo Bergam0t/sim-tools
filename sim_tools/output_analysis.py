@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 """
 module: output_analysis
 
@@ -684,7 +685,6 @@ class ReplicationsAlgorithmModelAdapter(Protocol):
         dict[str, float]
             {'metric_name': value, ... } for all metrics being tracked.
         """
-        pass
 
 
 # pylint: disable=too-many-instance-attributes
@@ -833,7 +833,7 @@ class ReplicationsAlgorithm:
             except Exception as e:
                 raise TypeError(
                     f"Could not instantiate observer {self.observer}: {e}"
-                )
+                ) from e
 
             # Must have a .summary_table() method and .dev attribute
             if not isinstance(obs_instance, AlgorithmObserver):
@@ -901,9 +901,12 @@ class ReplicationsAlgorithm:
                     return i + 1
         return None
 
+    # pylint: disable=too-many-branches
     def select(
-        self, model: ReplicationsAlgorithmModelAdapter, metrics: list[str]
-    ) -> int:
+        self,
+        model: ReplicationsAlgorithmModelAdapter,
+        metrics: list[str]
+    ) -> dict[str, int]:
         """
         Executes the replication algorithm, determining the necessary number
         of replications to achieve and maintain the desired precision.

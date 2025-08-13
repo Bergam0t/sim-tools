@@ -22,7 +22,6 @@ class DummySimulationModel():
         """
         self.mean = mean
         self.std_dev = std_dev
-        self.rand = np.random.default_rng()
 
     def single_run(self, replication_number: int) -> dict[str, float]:
         """
