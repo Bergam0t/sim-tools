@@ -50,7 +50,7 @@ def test_consistent_methods():
         look_ahead=0,
         replication_budget=reps,
         verbose=False,
-        observer=ReplicationTabulizer
+        observer_factory=ReplicationTabulizer
     )
     _, algorithm_summary_table = analyser.select(model, metrics=["metric"])
     algorithm_summary_table = round(algorithm_summary_table, decimal_places)
@@ -126,7 +126,7 @@ def test_algorithm_initial():
         look_ahead=0,
         replication_budget=1000,
         verbose=False,
-        observer=ReplicationTabulizer
+        observer_factory=ReplicationTabulizer
     )
 
     # Run the algorithm and get results
@@ -156,7 +156,7 @@ def test_algorithm_nosolution():
         look_ahead=0,
         replication_budget=reps,
         verbose=False,
-        observer=ReplicationTabulizer
+        observer_factory=ReplicationTabulizer
     )
 
     # Run algorithm, checking that it produces a warning

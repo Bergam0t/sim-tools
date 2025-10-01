@@ -11,7 +11,7 @@ The Replications Algorithm (Hoad et al. 2010).
 """
 
 import inspect
-from typing import (Dict, List, Optional, Protocol,
+from typing import (Callable, Dict, List, Optional, Protocol,
                     runtime_checkable, Sequence, Union)
 import warnings
 
@@ -717,8 +717,11 @@ class ReplicationsAlgorithm:
         Maximum number of replications allowed.
     verbose : bool
         If True, prints the current replication count during execution.
-    observer : ReplicationObserver or None
-        Optional observer object to record statistics at each update.
+    observer_factory : callable or None
+        Callable returning a new observer instance for each metric. Should
+        be a function, lambda, or class constructor taking no arguments.
+        Returned object must follow the `ReplicationObserver` protocol.
+        If None, uses `ReplicationTabulizer`.
     n : int
         Current replication count (updated during execution).
     _n_solution : int
@@ -743,7 +746,7 @@ class ReplicationsAlgorithm:
         look_ahead: Optional[int] = 5,
         replication_budget: Optional[float] = 1000,
         verbose: Optional[bool] = False,
-        observer: Optional[ReplicationObserver] = ReplicationTabulizer,
+        observer_factory: Optional[Callable[[], ReplicationObserver]] = None,
     ):
         """
         Initialise the replications algorithm
@@ -766,12 +769,13 @@ class ReplicationsAlgorithm:
             Maximum number of replications allowed; algorithm stops if not
             converged by then. Useful for larger models where replication
             runtime is a constraint.
-        verbose: bool, optional (default=False)
+        verbose: bool, optional (default = False)
             If True, prints replication count progress.
-        observer: ReplicationObserver, optional (default=ReplicationTabulizer)
-            Optional observer to record statistics after each replication. For
-            example `ReplicationTabulizer` to return a table equivalent to
-            `confidence_interval_method`.
+        observer_factory : callable or None, optional (default = None)
+            Callable returning a new observer instance for each metric. Should
+            be a function, lambda, or class constructor taking no arguments.
+            Returned object must follow the `ReplicationObserver` protocol.
+            If None, uses `ReplicationTabulizer`.
 
         Raises
         ------
@@ -789,7 +793,11 @@ class ReplicationsAlgorithm:
         self.n = self.initial_replications
 
         self._n_solution = self.replication_budget
-        self.observer = observer
+
+        if observer_factory is None:
+            observer_factory = ReplicationTabulizer
+        self.observer_factory = observer_factory
+
         self.stats = None
 
         # Check validity of provided parameters
@@ -821,26 +829,27 @@ class ReplicationsAlgorithm:
             raise ValueError(
                 'replication_budget must be less than initial_replications.')
 
-        if self.observer is not None:
+        if self.observer_factory is not None:
             # Must be a class, not an instance
-            if not inspect.isclass(self.observer):
+            if not inspect.isclass(self.observer_factory):
                 raise TypeError(
                     "'observer' must be a class (not an instance)."
                 )
 
             # Instantiate a temporary one to inspect
             try:
-                obs_instance = self.observer()
+                obs_instance = self.observer_factory()
             except Exception as e:
                 raise TypeError(
-                    f"Could not instantiate observer {self.observer}: {e}"
+                    f"Could not instantiate {self.observer_factory}: {e}"
                 ) from e
 
             # Must have a .summary_table() method and .dev attribute
             if not isinstance(obs_instance, AlgorithmObserver):
                 raise TypeError(
-                    "Observer must implement the AlgorithmObserver protocol, i"
-                    "ncluding the `.dev` attribute and `summary_table` method."
+                    "Observer factory must implement the AlgorithmObserver "
+                    "protocol, including the `.dev` attribute and "
+                    "`summary_table` method."
                 )
 
     def _klimit(self) -> int:
@@ -950,7 +959,15 @@ class ReplicationsAlgorithm:
             raise ValueError(ALG_INTERFACE_ERROR)
 
         # Create instances of observer for each metric
-        observers = {metric: self.observer() for metric in metrics}
+        observers = {}
+        for metric in metrics:
+            observer = self.observer_factory()
+            if not isinstance(observer, ReplicationObserver):
+                raise TypeError(
+                    f"Observer factory for '{metric}' did not produce an "
+                    "object implementing the ReplicationObserver protocol."
+                )
+            observers[metric] = observer
 
         # Create tracking dictionary
         solutions = {
