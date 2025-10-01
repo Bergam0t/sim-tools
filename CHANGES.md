@@ -20,7 +20,7 @@ v1.0.0 centres on **multi-metric support** - `confidence_interval_method` and `R
 ### Changed
 
 * **Defaults:** The default for `desired_precision` in `confidence_interval_method` is now 0.1 (was 0.05) for consistency with `ReplicationsAlgorithm`.
-* **Protocols:** Updated `ReplicationsAlgorithmModelAdapter` and add `AlgorithmObserver` to accomodate the new required format.
+* **Protocols:** Updated `ReplicationsAlgorithmModelAdapter` and add `AlgorithmObserver` to accommodate the new required format (more complex than `ReplicationObserver`).
 * **Documentation:** Updated the algorithm documentation for the new syntax (e.g. new treat-sim adapter), and moved `treat-sim` description to its own page to avoid repetition.
 * **Docstrings:** Improvements in `output_analysis.py`.
 * **Testing:** Amended to work with new syntax/logic of replications methods.

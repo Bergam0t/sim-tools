@@ -312,7 +312,7 @@ class OnlineStatistics:
 
 class ReplicationTabulizer:
     """
-    Observer class for recording replication results from an 
+    Observer class for recording replication results from an
     `OnlineStatistics` instance during simulation runs or repeated experiments.
 
     Implements the observer pattern to collect statistics after each update
@@ -720,7 +720,7 @@ class ReplicationsAlgorithm:
     observer_factory : callable or None
         Callable returning a new observer instance for each metric. Should
         be a function, lambda, or class constructor taking no arguments.
-        Returned object must follow the `ReplicationObserver` protocol.
+        Returned object must follow the `AlgorithmObserver` protocol.
         If None, uses `ReplicationTabulizer`.
     n : int
         Current replication count (updated during execution).
@@ -746,7 +746,7 @@ class ReplicationsAlgorithm:
         look_ahead: Optional[int] = 5,
         replication_budget: Optional[float] = 1000,
         verbose: Optional[bool] = False,
-        observer_factory: Optional[Callable[[], ReplicationObserver]] = None,
+        observer_factory: Optional[Callable[[], AlgorithmObserver]] = None,
     ):
         """
         Initialise the replications algorithm
@@ -774,7 +774,7 @@ class ReplicationsAlgorithm:
         observer_factory : callable or None, optional (default = None)
             Callable returning a new observer instance for each metric. Should
             be a function, lambda, or class constructor taking no arguments.
-            Returned object must follow the `ReplicationObserver` protocol.
+            Returned object must follow the `AlgorithmObserver` protocol.
             If None, uses `ReplicationTabulizer`.
 
         Raises
@@ -959,15 +959,7 @@ class ReplicationsAlgorithm:
             raise ValueError(ALG_INTERFACE_ERROR)
 
         # Create instances of observer for each metric
-        observers = {}
-        for metric in metrics:
-            observer = self.observer_factory()
-            if not isinstance(observer, ReplicationObserver):
-                raise TypeError(
-                    f"Observer factory for '{metric}' did not produce an "
-                    "object implementing the ReplicationObserver protocol."
-                )
-            observers[metric] = observer
+        observers = {metric: self.observer_factory() for metric in metrics}
 
         # Create tracking dictionary
         solutions = {
