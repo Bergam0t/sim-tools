@@ -11,7 +11,7 @@ The Replications Algorithm (Hoad et al. 2010).
 """
 
 import inspect
-from typing import (Callable, Dict, List, Optional, Protocol,
+from typing import (Any, Callable, Dict, List, Optional, Protocol,
                     runtime_checkable, Sequence, Union)
 import warnings
 
@@ -55,30 +55,33 @@ class ReplicationObserver(Protocol):
 @runtime_checkable
 class AlgorithmObserver(Protocol):
     """
-    Interface (protocol) for observer used in ReplicationsAlgorithm.
-    """
-    def __init__(self):
-        """
-        Initialise observer.
-        """
-        self.dev = []  # Required attribute
+    Protocol for observer classes used in ReplicationsAlgorithm.
 
-    def update(self, results) -> None:
-        """
+    Classes implementing this protocol should provide a `dev` attribute
+    to store observations, a method `update` to add new results, and a
+    `summary_table` method to summarize the stored replication statistics.
+
+    Attributes
+    ----------
+    dev : List[Any]
+        Collection of observed replication results.
+
+    Methods
+    -------
+    update(results) -> None
         Add an observation of a replication.
 
-        Parameters
-        -----------
-        results: OnlineStatistic
-            The current replication to observe.
-        """
-        self.dev.append(...)
-
-    def summary_table(self):
-        """
+    summary_table() -> pd.DataFrame
         Create a DataFrame summarising all recorded replication statistics.
-        """
-        return pd.DataFrame(...)
+    """
+
+    dev: List[Any]
+
+    def update(self, results) -> None:
+        ...
+
+    def summary_table(self) -> pd.DataFrame:
+        ...
 
 
 class OnlineStatistics:
@@ -830,13 +833,14 @@ class ReplicationsAlgorithm:
                 'replication_budget must be less than initial_replications.')
 
         if self.observer_factory is not None:
-            # Must be a class, not an instance
-            if not inspect.isclass(self.observer_factory):
+            # Must be a callable (class, function, or lambda)
+            if not callable(self.observer_factory):
                 raise TypeError(
-                    "'observer' must be a class (not an instance)."
+                    "'observer_factory' must be callable (a class, function, ",
+                    "or lambda)."
                 )
 
-            # Instantiate a temporary one to inspect
+            # Instantiate a temporary observer to inspect
             try:
                 obs_instance = self.observer_factory()
             except Exception as e:
@@ -844,12 +848,11 @@ class ReplicationsAlgorithm:
                     f"Could not instantiate {self.observer_factory}: {e}"
                 ) from e
 
-            # Must have a .summary_table() method and .dev attribute
+            # Must adhere to the AlgorithmObserver protocol
             if not isinstance(obs_instance, AlgorithmObserver):
                 raise TypeError(
-                    "Observer factory must implement the AlgorithmObserver "
-                    "protocol, including the `.dev` attribute and "
-                    "`summary_table` method."
+                    "Observer factory must return an object implementing the "
+                    "AlgorithmObserver protocol."
                 )
 
     def _klimit(self) -> int:
