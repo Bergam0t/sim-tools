@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 Consistent identifier (represents all versions, resolves to latest): [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4553641.svg)](https://doi.org/10.5281/zenodo.4553641)
 
+## v1.0.0
+
+v1.0.0 centres on **multi-metric support** - `confidence_interval_method` and `ReplicationsAlgorithm` can now analyse multiple metrics at once, driving changes to syntax (explicit `metrics` argument), adapter formats, defaults, docs, plotting, and tests to support the new capability.
+
+### Added
+
+* **Multi-metric support:** Both `confidence_interval_method` and `ReplicationsAlgorithm` can now process multiple metrics at once. Algorithm now requires explicit `metrics argument` and new adapter format (⚠ breaking change).
+* **Plot improvement:** `plotly_confidence_interval_method` now uses shaded confidence intervals (dashed still available).
+* **Documentation:** Add a dedicated page on `confidence_interval_method`.
+* **Testing:** New tests added following multiple metrics changes.
+
+### Changed
+
+* **Defaults:** The default for `desired_precision` in `confidence_interval_method` is now 0.1 (was 0.05) for consistency with `ReplicationsAlgorithm`.
+* **Protocols:** Updated `ReplicationsAlgorithmModelAdapter` and add `AlgorithmObserver` to accommodate the new required format (more complex than `ReplicationObserver`).
+* **Documentation:** Updated the algorithm documentation for the new syntax (e.g. new treat-sim adapter), and moved `treat-sim` description to its own page to avoid repetition.
+* **Docstrings:** Improvements in `output_analysis.py`.
+* **Testing:** Amended to work with new syntax/logic of replications methods.
+* **Linting:** Linting several files.
+
+### Fixed
+
+* **Algorithm:** Now adjusts result if solution was found within initial replications.
+
+###
+
 ## [v0.10.0](https://github.com/TomMonks/sim-tools/releases/tag/v0.10.0)[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.16754108.svg)](https://doi.org/10.5281/zenodo.16754108)
 
 ### Added

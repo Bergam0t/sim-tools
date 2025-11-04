@@ -2,16 +2,26 @@
 # Visit https://bit.ly/cffinit to generate yours today!
 
 cff-version: 1.2.0
-title: sim-tools
+title: 'sim-tools: fundamental tools to support the simulation process in python'
 message: >-
   If you use this software, please cite it using the
   metadata from this file.
 type: software
 authors:
-  - given-names: 'Thomas '
+  - given-names: Thomas
     family-names: Monks
     affiliation: University of Exeter
     orcid: 'https://orcid.org/0000-0003-2631-4481'
+  - given-names: Amy
+    family-names: Heather
+    email: a.heather2@exeter.ac.uk
+    affiliation: University of Exeter Medical School
+    orcid: 'https://orcid.org/0000-0002-6596-3479'
+  - given-names: Alison
+    family-names: Harper
+    email: a.l.harper@exeter.ac.uk
+    affiliation: University of Exeter Business School
+    orcid: 'https://orcid.org/0000-0001-5274-5037'
 repository-code: 'https://github.com/TomMonks/sim-tools'
 keywords:
   - discrete-event simulation

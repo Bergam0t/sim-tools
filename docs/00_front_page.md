@@ -74,16 +74,16 @@ mamba install sim-tools
 
 If you use sim0tools for research, a practical report, education or any reason please include the following citation.
 
-> Monks, Thomas. (2021). sim-tools: tools to support the forecasting process in python. Zenodo. http://doi.org/10.5281/zenodo.4553642
+> Monks, T., Heather, A., Harper, A. (2025). sim-tools: fundamental tools to support the simulation process in python. Zenodo. https://doi.org/10.5281/zenodo.4553641.
 
 ```tex
 @software{sim_tools,
-  author       = {Thomas Monks},
+  author       = {Thomas Monks and Amy Heather and Alison Harper},
   title        = {sim-tools: fundamental tools to support the simulation process in python},
-  year         = {2021},
+  year         = {2025},
   publisher    = {Zenodo},
-  doi          = {10.5281/zenodo.4553642},
-  url          = {http://doi.org/10.5281/zenodo.4553642}
+  doi          = {10.5281/zenodo.4553641},
+  url          = {https://doi.org/10.5281/zenodo.4553641}
 }
 ```
 

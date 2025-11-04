@@ -8,6 +8,7 @@ Credit: Some of these tests are adapted from-
 """
 
 from unittest.mock import MagicMock
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -15,11 +16,16 @@ import pytest
 import scipy.stats as st
 
 from sim_tools.output_analysis import (
+    confidence_interval_method,
     OnlineStatistics,
     ReplicationsAlgorithm,
     ReplicationTabulizer
 )
 
+
+# -----------------------------------------------------------------------------
+# ReplicationsAlgorithm
+# -----------------------------------------------------------------------------
 
 @pytest.mark.parametrize("look_ahead, n, exp", [
     (100, 100, 100),
@@ -82,6 +88,44 @@ def test_algorithm_invalid_budget():
                               replication_budget=9)
 
 
+@pytest.mark.parametrize("lst, exp, look_ahead", [
+    ([None, None, 0.8, 0.4, 0.3], 4, 0),  # Normal case
+    ([0.4, 0.3, 0.2, 0.1], 1, 0),  # No None values
+    ([0.8, 0.9, 0.8, 0.7], None, 0),  # No values below threshold
+    ([None, None, None, None], None, 0),  # No values
+    ([], None, 0),  # Empty list
+    ([None, None, 0.8, 0.8, 0.3, 0.3, 0.3], None, 3),  # Not full lookahead
+    ([None, None, 0.8, 0.8, 0.3, 0.3, 0.3, 0.3], 5, 3)  # Meets lookahead
+])
+def test_find_position(lst, exp, look_ahead):
+    """
+    Test the find_position() method from ReplicationsAlgorithm.
+
+    Parameters
+    ----------
+    lst : list
+        List of values to input to find_position().
+    exp : float
+        Expected result from find_position().
+    look_ahead : int
+        Number of extra positions to check that they also fall under the
+        threshold.
+    """
+    # Set threshold to 0.5, with provided look_ahead
+    alg = ReplicationsAlgorithm(half_width_precision=0.5,
+                                look_ahead=look_ahead)
+    # Get result from algorithm and compare to expected
+    result = alg.find_position(lst)
+    assert result == exp, (
+        f"Ran find_position on: {lst} (threshold 0.5, look-ahead "
+        f"{look_ahead}). Expected {exp}, but got {result}."
+    )
+
+
+# -----------------------------------------------------------------------------
+# OnlineStatistics
+# -----------------------------------------------------------------------------
+
 def test_onlinestat_data():
     """
     Check that OnlineStatistics will fail if an invalid data type is provided.
@@ -122,6 +166,25 @@ def test_onlinestat_computations():
         f"Expected upper confidence interval {expected_uci}, got {stats.uci}")
     assert np.isclose(stats.deviation, expected_dev), (
         f"Expected deviation {expected_dev}, got {stats.deviation}")
+
+
+# -----------------------------------------------------------------------------
+# ReplicationTabulizer
+# -----------------------------------------------------------------------------
+
+def test_tabulizer_initial_state():
+    """
+    Test that ReplicationTabulizer initializes with empty lists and n = 0.
+    """
+    tab = ReplicationTabulizer()
+    assert tab.n == 0
+    # Checks for empty lists (equivalent to len(tab.x_i)==0)
+    assert not tab.x_i
+    assert not tab.cumulative_mean
+    assert not tab.stdev
+    assert not tab.lower
+    assert not tab.upper
+    assert not tab.dev
 
 
 def test_tabulizer_update():
@@ -171,3 +234,44 @@ def test_tabulizer_summary_table():
     assert df["Lower Interval"].tolist() == [3, 8, 13]
     assert df["Upper Interval"].tolist() == [7, 12, 17]
     assert df["% deviation"].tolist() == [0.1, 0.2, 0.3]
+
+
+# -----------------------------------------------------------------------------
+# confidence_interval_method
+# -----------------------------------------------------------------------------
+
+@pytest.mark.parametrize("input_type", [
+    pd.Series([1, 2, 3, 4, 5]),
+    [1, 2, 3, 4, 5],
+    pd.DataFrame({"metric_a": [1, 2, 3, 4, 5], "metric_b": [2, 3, 4, 5, 6]}),
+    {"metric_a": [1, 2, 3, 4, 5]},
+    [[1, 2, 3, 4, 5], [2, 3, 4, 5, 6]]
+])
+def test_confidence_interval_various_inputs(input_type):
+    """
+    Check the output type from different inputs to confidence_interval_method.
+    """
+    warnings.filterwarnings(
+        "ignore",
+        message="WARNING: the replications do not reach desired precision"
+    )
+    result = confidence_interval_method(
+        replications=input_type, alpha=0.05, desired_precision=0.1, min_rep=3
+    )
+    if (
+        isinstance(input_type, (pd.Series, list))
+        and not (isinstance(input_type[0], (list, np.ndarray, pd.Series)))
+    ):
+        # Single metric returns tuple
+        assert isinstance(result, tuple)
+        n_reps, results_df = result
+        assert isinstance(n_reps, int)
+        assert isinstance(results_df, pd.DataFrame)
+    else:
+        # Multiple metrics returns dict
+        assert isinstance(result, dict)
+        for val in result.values():
+            assert isinstance(val, tuple)
+            n_reps, results_df = val
+            assert isinstance(n_reps, int)
+            assert isinstance(results_df, pd.DataFrame)

@@ -22,9 +22,8 @@ class DummySimulationModel():
         """
         self.mean = mean
         self.std_dev = std_dev
-        self.rand = np.random.default_rng()
 
-    def single_run(self, replication_number) -> float:
+    def single_run(self, replication_number: int) -> dict[str, float]:
         """
         Simulate a single replication with controlled randomness.
 
@@ -36,7 +35,10 @@ class DummySimulationModel():
 
         Returns
         -------
-            float
+        dict[str, float]
+            {"metric": simulated_value}
         """
-        return np.random.default_rng(replication_number).normal(
-            loc=self.mean, scale=self.std_dev)
+        value = np.random.default_rng(replication_number).normal(
+            loc=self.mean, scale=self.std_dev
+        )
+        return {"metric": value}

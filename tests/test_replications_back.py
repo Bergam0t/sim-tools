@@ -35,7 +35,7 @@ def test_ci_method(mean, std_dev, expected_n_reps):
     """
     model = DummySimulationModel(mean=mean, std_dev=std_dev)
 
-    replications = [model.single_run(rep) for rep in range(1, 101)]
+    replications = [model.single_run(rep)["metric"] for rep in range(1, 101)]
 
     n_reps, _ = confidence_interval_method(
         replications=replications,
@@ -49,7 +49,7 @@ def test_ci_method(mean, std_dev, expected_n_reps):
 
 
 @pytest.mark.parametrize("mean, std_dev, expected_n_reps", [
-    (100, 4, 5),
+    (100, 4, 3),
     (1, 1, 332),
     (44, 27, 171)
 ])
@@ -78,7 +78,7 @@ def test_algorithm(mean, std_dev, expected_n_reps):
         verbose=False
     )
 
-    n_reps = analyser.select(model)
+    n_reps, _ = analyser.select(model, metrics=["metric"])
 
-    assert n_reps == expected_n_reps, (
-        f"Expected {expected_n_reps} replications but got {n_reps}")
+    assert n_reps["metric"] == expected_n_reps, (
+        f"Expected {expected_n_reps} replications but got {n_reps['metric']}")
