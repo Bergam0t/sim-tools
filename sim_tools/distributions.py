@@ -99,6 +99,7 @@ from typing import (
     List,
     Dict,
     runtime_checkable,
+    TypeVar,
 )
 
 import numpy as np
@@ -120,6 +121,8 @@ from sim_tools._validation import (
     is_probability_vector,
     is_positive_array,
 )
+
+T = TypeVar("T", bound=type)
 
 
 # pylint: disable=too-few-public-methods
@@ -297,7 +300,7 @@ class DistributionRegistry:
             Decorator function that registers the class
         """
 
-        def decorator(distribution_class: Distribution):
+        def decorator(distribution_class: T) -> T:
             nonlocal name
             if name is None:
                 name = distribution_class.__name__

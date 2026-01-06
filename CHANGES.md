@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 Consistent identifier (represents all versions, resolves to latest): [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4553641.svg)](https://doi.org/10.5281/zenodo.4553641)
 
+## v1.0.1
+
+### Fixed
+
+* **Type Hinting and Pylance Support**: Adjusted type hinting within `@register` decorator to enable display of docstrings, hover hints and argument suggestions.
+
 ## v1.0.0
 
 v1.0.0 centres on **multi-metric support** - `confidence_interval_method` and `ReplicationsAlgorithm` can now analyse multiple metrics at once, driving changes to syntax (explicit `metrics` argument), adapter formats, defaults, docs, plotting, and tests to support the new capability.
@@ -65,14 +71,14 @@ v1.0.0 centres on **multi-metric support** - `confidence_interval_method` and `R
 
 ### Added
 
-* `distributions.DistributionRegistry` - for batch creation of standard distributions from a dictionary or list.  
+* `distributions.DistributionRegistry` - for batch creation of standard distributions from a dictionary or list.
 * DOCS: `DistributionRegistry` explaination and examples including use of JSON to store configs.
 * `distributions.spawn_seeds` function to support creation of PRNG streams.
 * `Hyperexponential` - A continuous probability distribution that is a mixture (weighted sum) of
     exponential distributions. It has a higher coefficient of variation than
     a single exponential distribution, making it useful for modeling highly
     variable processes or heavy-tailed phenomena.
-* `RawContinuousEmpirical` - A distribution that performs linear interpolation between data points according to 
+* `RawContinuousEmpirical` - A distribution that performs linear interpolation between data points according to
     the algorithm described in Law & Kelton's "Simulation Modeling and Analysis".
 * `sim_tools._validation`: internal module that contains common validation routines for `sim_tools` functions and classes.
 * All distribution classes updated to include valudation of input parameters.
@@ -80,7 +86,7 @@ v1.0.0 centres on **multi-metric support** - `confidence_interval_method` and `R
 
 ### Changed
 
-* `Distribution` changed from abstract base class to `Protocol`.  All inheritance removed from concrete classes. 
+* `Distribution` changed from abstract base class to `Protocol`.  All inheritance removed from concrete classes.
 * Added `__repr__()` to all distribution classes.
 * DOCS: improved docstrings for all distribution classes
 * BREAKING: `Discrete` -> `DiscreteEmpirical`
@@ -134,8 +140,8 @@ v1.0.0 centres on **multi-metric support** - `confidence_interval_method` and `R
 * `ReplicationsAlgorithmModelAdapter` - a `Protocol` to adapt any model to work with with `ReplicationsAlgorithm`
 * `confidence_interval_method` - select the number of replication using the classical confidence interval method
 * `plotly_confidence_interval_method` - visualise the confidence interval method using plotly.
-* `ReplicationObserver` a `Protocol` for observering the replications algorithm 
-*  `ReplicationTabulizer` record replications algorithm in a pandas dataframe. 
+* `ReplicationObserver` a `Protocol` for observering the replications algorithm
+*  `ReplicationTabulizer` record replications algorithm in a pandas dataframe.
 * Documentation for `ReplicationsAlgorithm`
 
 ### Updated
@@ -146,7 +152,7 @@ v1.0.0 centres on **multi-metric support** - `confidence_interval_method` and `R
 
 ### Fixed
 
-* BUILD: added rich library. 
+* BUILD: added rich library.
 
 ### Removed
 
@@ -194,7 +200,7 @@ v1.0.0 centres on **multi-metric support** - `confidence_interval_method` and `R
 
 ## [v0.3.2](https://github.com/TomMonks/sim-tools/releases/tag/v0.3.2) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10625581.svg)](https://doi.org/10.5281/zenodo.10625581)
 
-### Changed 
+### Changed
 
 * Update Github action to publish to pypi. Use setuptools instead of build
 
@@ -239,7 +245,7 @@ v1.0.0 centres on **multi-metric support** - `confidence_interval_method` and `R
 
 ### Added
 
-* Added `sim_tools.distribution` module.  This contains classes representing popular sampling distributions for Discrete-event simulation. All classes encapsulate a `numpy.random.Generator` object, a random seed, and the parameters of a sampling distribution.  
+* Added `sim_tools.distribution` module.  This contains classes representing popular sampling distributions for Discrete-event simulation. All classes encapsulate a `numpy.random.Generator` object, a random seed, and the parameters of a sampling distribution.
 
 ### Changed
 
